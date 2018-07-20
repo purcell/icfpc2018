@@ -1,5 +1,9 @@
 module  Cmd
-    (
+    ( Cmd(..)
+    , SeedAmount
+    , LLD
+    , SLD
+    , NCD
     ) where
 
 
@@ -15,9 +19,11 @@ data Cmd =
   | Fill NCD
 
 newtype SeedAmount = SeedAmount Int
--- Long Linear Coordinate Difference : LLD
--- Short Linear Coordinate Difference : SLD
--- Near Coordinate Difference : NCD
-data LLD = LLD (Int, Int, Int)
-data SLD = SLD (Int, Int, Int)
-data NCD = NCD (Int, Int, Int)
+
+-- LLD: Long Linear Coordinate Difference
+-- SLD: Short Linear Coordinate Difference
+-- NCD: Near Coordinate Difference
+
+newtype LLD = LLD (Int, Int, Int)
+newtype SLD = SLD (Int, Int, Int)
+newtype NCD = NCD (Int, Int, Int)
