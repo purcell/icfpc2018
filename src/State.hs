@@ -4,7 +4,6 @@
 module State where
 
 import           Cmd             (Cmd)
-import qualified Data.Map        (Map)
 import           Data.Map.Strict
 import           Data.Set        (Set)
 import           Model           (Coordinate, Matrix)
