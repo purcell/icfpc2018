@@ -3,6 +3,7 @@
 module Trace
   ( toBinaryTrace
   , debugCmdBinary
+  , dumpTrace
   ) where
 
 import Cmd
@@ -11,6 +12,9 @@ import Data.Bits
 import qualified Data.ByteString.Lazy as BSL
 import Data.Foldable (traverse_)
 import Data.Word
+
+dumpTrace :: [Cmd] -> FilePath -> IO ()
+dumpTrace cmds traceFile = BSL.writeFile traceFile (toBinaryTrace cmds)
 
 toBinaryTrace :: [Cmd] -> BSL.ByteString
 toBinaryTrace cmds = runPut (putCmds cmds)

@@ -1,6 +1,5 @@
 module Main where
 
-import qualified Data.ByteString.Lazy as BSL
 import Data.Semigroup ((<>))
 import Model
 import Solver
@@ -22,5 +21,5 @@ solveAndTrace problemFile traceFile = do
   case solve model of
     Just (endState, cost) -> do
       putStrLn $ "Found solution which cost " <> show cost
-      BSL.writeFile traceFile (toBinaryTrace (trace endState))
+      dumpTrace (trace endState) traceFile
     _ -> die "No solution found"
