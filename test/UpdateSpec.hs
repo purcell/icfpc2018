@@ -83,14 +83,14 @@ spec =
             expectedCoord = Coordinate { cx = 1, cy = 0, cz = 2 }
             maybeState = performCommand (initialBotId, Cmd.Fill ncd) initialState
 
-        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just False
+        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Nothing
 
       it "does not fill the voxel at the specified vector if it is not grounded" $ do
         let ncd = NCD VectorDiff { dx = 0, dy = 5, dz = 0 }
             expectedCoord = Coordinate { cx = 0, cy = 5, cz = 0 }
             maybeState = performCommand (initialBotId, Cmd.Fill ncd) initialState
 
-        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just False
+        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Nothing
 
       it "adjusts the energy by 12 when the specified voxel was Void" $
         energy <$> maybeState `shouldBe` Just 12

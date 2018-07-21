@@ -58,7 +58,7 @@ performCommand (botId, cmd) state@State {..} =
         Fill (NCD vector)
          -> do
           guard $ isFilled target coordToFill
-          guard $ isGrounded matrix coordToFill
+          guard $ isGrounded updatedMatrix coordToFill
           pure
             state
               { matrix = updatedMatrix
