@@ -32,6 +32,8 @@ isGrounded :: Matrix -> Coordinate -> Bool
 isGrounded = go S.empty
   where
     go :: S.Set Coordinate -> Matrix -> Coordinate -> Bool
+    go _ m c
+      | not (isFilled m c) = False
     go _ _ c
       | cy c == 0 = True
     go seen m c =
