@@ -3,6 +3,7 @@
 
 module Update where
 
+import           Control.Applicative
 import           Control.Monad   (guard)
 import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
                                   VectorDiff (..))
@@ -14,7 +15,7 @@ import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
 import qualified State
 
-performCommand ::  (BotId, Cmd) -> State -> Maybe State
+performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
 performCommand (botId, cmd) state@State{..} =
   (\s -> s { trace = trace ++ [cmd] }) <$> newState
   where
