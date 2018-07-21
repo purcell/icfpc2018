@@ -18,7 +18,10 @@ main = hspec spec
 
 initialState :: State
 initialState =
-  State.initialState Matrix { matrixResolution = 50, matrixFilledVoxels = Set.empty }
+  State.initialState
+    Matrix { matrixResolution = 50
+           , matrixFilledVoxels = Set.fromList [Coordinate { cx = 1, cy = 0, cz = 0 }]
+           }
 
 spec :: Spec
 spec =
@@ -74,6 +77,12 @@ spec =
         let expectedCoord = Coordinate { cx = 1, cy = 0, cz = 0 }
 
         ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just True
+
+      it "does not fill the voxel at the specified vector if it is not filled in the target" $ do
+        let ncd = NCD VectorDiff { dx = 1, dy = 3, dz = 0 }
+            expectedCoord = Coordinate { cx = 1, cy = 3, cz = 0 }
+
+        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just False
 
       it "adjusts the energy by 12 when the specified voxel was Void" $
         energy <$> maybeState `shouldBe` Just 12

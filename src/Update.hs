@@ -58,7 +58,7 @@ performCommand (botId, cmd) state@State {..} =
         Fill (NCD vector)
           -- TODO: ensure the filled voxel is grounded
          -> do
-          guard $ isValidCoord matrix coordToFill
+          guard $ isFilled target coordToFill
           pure
             state
               { matrix = fillVoxel matrix coordToFill
