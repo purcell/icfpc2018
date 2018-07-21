@@ -19,7 +19,7 @@ performCommand :: (Bot, Cmd) -> State -> State
 performCommand (bot, cmd) state =
   case cmd of
     Halt                   -> undefined
-    Wait                   -> undefined
+    Wait                   -> state
     FlipHarmonics          -> state { harmonics = flipHarmonics $ harmonics state }
     SMove lld              -> undefined
     LMove sld1 sld2        -> undefined
