@@ -73,6 +73,9 @@ translateBy VectorDiff{..} Coordinate{..} =
 manhattanDistance :: VectorDiff -> Int
 manhattanDistance VectorDiff{..} = abs dx + abs dy + abs dz
 
+chessboardLength :: VectorDiff -> Int
+chessboardLength VectorDiff{..} = maximum [abs dx, abs dy, abs dz]
+
 flipHarmonics :: Harmonics -> Harmonics
 flipHarmonics High = Low
 flipHarmonics Low  = High
