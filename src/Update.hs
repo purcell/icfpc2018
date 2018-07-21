@@ -40,15 +40,18 @@ performCommand (botId, cmd) state@State {..} =
                 newBotCoord = translateBy vector $ coord bot
                 regionPassedThrough = region (coord bot) newBotCoord
                 energyToMoveBot = manhattanDistance vector * 2
-        LMove (SLD vector1) (SLD vector2) ->
+        LMove (SLD vector1) (SLD vector2) -> do
+          guard $ isValidCoord matrix coord''
+          guard $ regionIsClear regionPassedThrough
           pure
             state
               { bots = Map.insert botId movedBot bots
               , energy = energy + Energy (fromIntegral energyToMoveBot)
               }
-          where movedBot = bot {coord = newBotCoord}
-                newBotCoord =
-                  (translateBy vector1 . translateBy vector2) $ coord bot
+          where movedBot = bot {coord = coord''}
+                coord' = translateBy vector1 $ coord bot
+                coord'' = translateBy vector2 $ coord'
+                regionPassedThrough = region (coord bot) coord' ++ region coord' coord''
                 energyToMoveBot =
                   2 *
                   (manhattanDistance vector1 + 2 + manhattanDistance vector2)
