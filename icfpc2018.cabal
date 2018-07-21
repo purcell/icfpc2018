@@ -62,6 +62,7 @@ executable icfpc2018
 test-suite icfpc2018-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
+  other-modules:       UpdateSpec
   main-is:             Spec.hs
   build-depends:       base
                      , containers
