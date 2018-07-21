@@ -55,7 +55,9 @@ nearCoordinateDiffs =
   ]
     -- TODO: should be a smart constructor somewhere
   where
-    isNCD d = manhattanDistance d <= 2 && chessboardLength d == 1
+    isNCD d = mlen > 0 && mlen <= 2 && chessboardLength d == 1
+      where
+        mlen = manhattanDistance d
 
 distanceFromCompletion :: State -> Int
 distanceFromCompletion s =
