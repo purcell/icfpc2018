@@ -7,8 +7,8 @@ import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
                                   VectorDiff (..))
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
-import           Model           (Coordinate (..))
-import           Model           (Coordinate (..), Matrix(..), isFilled, fillVoxel)
+import           Model           (Coordinate (..), Matrix (..), fillVoxel,
+                                  isFilled)
 import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
 
@@ -22,12 +22,12 @@ performCommand (botId, cmd) state@State{..} =
     newState =
       case cmd of
         Halt ->
-          if notOneBot || botNotAtOrigin
-          then Nothing
-          else Just state { bots = Map.empty }
+          if onlyOneBot && botAtOrigin
+          then Just $ state { bots = Map.empty }
+          else Nothing
           where
-            notOneBot = length bots /= 1
-            botNotAtOrigin = coord bot == State.origin
+            onlyOneBot = length bots == 1
+            botAtOrigin = coord bot == State.origin
 
         Wait -> Just state
 
