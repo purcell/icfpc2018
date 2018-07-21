@@ -6,7 +6,7 @@ module Update where
 import Cmd (Cmd(..), LLD(..), NCD(..), SLD(..), VectorDiff(..))
 import Control.Applicative
 import Control.Monad (guard)
-import Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Model (Coordinate(..), Matrix(..), fillVoxel, isFilled, isValidCoord)
 import State (BotId, Energy(..), Harmonics(..), State(..), coord)
@@ -17,6 +17,7 @@ performCommand (botId, cmd) state@State {..} =
   (\s -> s {trace = trace ++ [cmd]}) <$> newState
   where
     bot = bots Map.! botId
+    regionIsClear = not . any (isFilled matrix)
     newState =
       case cmd of
         Halt -> do
@@ -29,6 +30,7 @@ performCommand (botId, cmd) state@State {..} =
         FlipHarmonics -> pure state {harmonics = flipHarmonics harmonics}
         SMove (LLD vector) -> do
           guard $ isValidCoord matrix newBotCoord
+          guard $ regionIsClear regionPassedThrough
           -- TODO: check all coords along path are empty
           pure
             state
@@ -37,6 +39,7 @@ performCommand (botId, cmd) state@State {..} =
               }
           where movedBot = bot {coord = newBotCoord}
                 newBotCoord = translateBy vector $ coord bot
+                regionPassedThrough = region (coord bot) newBotCoord
                 energyToMoveBot = manhattanDistance vector * 2
         LMove (SLD vector1) (SLD vector2) ->
           pure
@@ -53,7 +56,9 @@ performCommand (botId, cmd) state@State {..} =
         Fission _ncd _seedAmount -> undefined
         FusionP _ncd -> undefined
         FusionS _ncd -> undefined
-        Fill (NCD vector) -> do
+        Fill (NCD vector)
+          -- TODO: ensure the filled voxel is grounded
+         -> do
           guard $ isValidCoord matrix coordToFill
           pure
             state
@@ -65,6 +70,14 @@ performCommand (botId, cmd) state@State {..} =
                   if isFilled matrix coordToFill
                     then 6
                     else 12
+
+region :: Coordinate -> Coordinate -> [Coordinate]
+region c1 c2 =
+  [ Coordinate x y z
+  | x <- [(cx c1) .. (cx c2)]
+  , y <- [(cy c1) .. (cy c2)]
+  , z <- [(cz c1) .. (cz c2)]
+  ]
 
 translateBy :: VectorDiff -> Coordinate -> Coordinate
 translateBy VectorDiff {..} Coordinate {..} =
