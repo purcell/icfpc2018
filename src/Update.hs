@@ -16,9 +16,7 @@ import qualified State
 
 performCommand :: (BotId, Cmd) -> State -> Maybe State
 performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
-  case State.checkForm newState of
-    Left err -> Debug.trace err Nothing
-    Right s  -> Just s
+  Just newState
   where
     bot = bots Map.! botId
     newState =
