@@ -10,11 +10,6 @@ import qualified Data.Set as S
 import qualified Data.Vector as V
 import Data.Word
 
-data VoxelState
-  = Void
-  | Full
-  deriving (Show, Eq)
-
 data Coordinate = Coordinate
   { cx :: Int
   , cy :: Int
@@ -23,15 +18,18 @@ data Coordinate = Coordinate
 
 data Matrix = Matrix
   { matrixResolution :: Int
-  , matrixVoxelState :: Coordinate -> VoxelState
-  }
+  , matrixFilledVoxels :: S.Set Coordinate
+  } deriving (Eq, Ord)
+
+isFilled :: Matrix -> Coordinate -> Bool
+isFilled Matrix {..} c = c `S.member` matrixFilledVoxels
 
 isGrounded :: Matrix -> Coordinate -> Bool
 isGrounded = go S.empty
   where
     go :: S.Set Coordinate -> Matrix -> Coordinate -> Bool
     go _ m c
-      | Void == matrixVoxelState m c = False
+      | not (isFilled m c) = False
     go _ _ c
       | cy c == 0 = True
     go seen m c =
@@ -60,9 +58,11 @@ showSlice :: Matrix -> Int -> String
 showSlice m y = unlines (row <$> reverse (coordRange m))
   where
     row z =
-      [voxelChar (matrixVoxelState m (Coordinate x y z)) | x <- coordRange m]
-    voxelChar Void = '.'
-    voxelChar Full = 'X'
+      [ if isFilled m (Coordinate x y z)
+        then 'X'
+        else '.'
+      | x <- coordRange m
+      ]
 
 modelFromFile :: FilePath -> IO Matrix
 modelFromFile path = runGet getMatrix <$> BSL.readFile path
@@ -72,13 +72,19 @@ getMatrix = do
   res <- fromIntegral <$> getWord8
   let bytesToRead = ceiling (fromIntegral (res * res * res) / 8 :: Rational)
   bytes <- V.fromList . BS.unpack <$> getByteString bytesToRead
-  return (Matrix res (voxelStateAt bytes res))
+  let filledCoords =
+        S.fromList
+          [ c
+          | x <- [1 .. res - 2]
+          , y <- [1 .. res - 2]
+          , z <- [1 .. res - 2]
+          , let c = Coordinate x y z
+          , voxelFilledAt bytes res c
+          ]
+  return (Matrix res filledCoords)
 
-voxelStateAt :: V.Vector Word8 -> Int -> Coordinate -> VoxelState
-voxelStateAt bytes res Coordinate {..} =
-  if testBit (bytes V.! byteIdx) bitIdx
-    then Full
-    else Void
+voxelFilledAt :: V.Vector Word8 -> Int -> Coordinate -> Bool
+voxelFilledAt bytes res Coordinate {..} = testBit (bytes V.! byteIdx) bitIdx
   where
     offset = cx * res * res + cy * res + cz
     (byteIdx, bitIdx) = offset `divMod` 8
