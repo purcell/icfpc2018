@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards            #-}
 
 module State where
 
@@ -15,7 +16,7 @@ data State =
         , trace        :: [Cmd]
         }
 
-newtype Energy = Energy Int
+newtype Energy = Energy Int deriving (Num)
 
 data Harmonics = Low | High
 
