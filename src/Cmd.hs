@@ -18,12 +18,9 @@ data Cmd
             SeedAmount
   | FusionP NCD
   | FusionS NCD
-  | Fill NCD
-  deriving (Eq, Ord)
+  | Fill NCD deriving (Show, Eq, Ord)
 
-newtype SeedAmount =
-  SeedAmount Int
-  deriving (Eq, Ord)
+newtype SeedAmount = SeedAmount Int deriving (Show, Eq, Ord)
 
 -- LLD: Long Linear Coordinate Difference
 -- SLD: Short Linear Coordinate Difference
@@ -34,14 +31,6 @@ data VectorDiff = VectorDiff
   , dz :: Int
   } deriving (Eq, Ord, Show)
 
-newtype LLD =
-  LLD VectorDiff
-  deriving (Eq, Ord)
-
-newtype SLD =
-  SLD VectorDiff
-  deriving (Eq, Ord)
-
-newtype NCD =
-  NCD VectorDiff
-  deriving (Eq, Ord)
+newtype LLD = LLD VectorDiff deriving (Show, Eq, Ord)
+newtype SLD = SLD VectorDiff deriving (Show, Eq, Ord)
+newtype NCD = NCD VectorDiff deriving (Show, Eq, Ord)

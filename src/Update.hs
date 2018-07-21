@@ -21,13 +21,13 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
     bot = bots Map.! botId
     newState =
       case cmd of
-        Halt                   -> undefined
+        Halt -> undefined
 
-        Wait                   -> state
+        Wait -> state
 
-        FlipHarmonics          -> state { harmonics = flipHarmonics $ harmonics state }
+        FlipHarmonics -> state { harmonics = flipHarmonics $ harmonics state }
 
-        SMove (LLD vector)     ->
+        SMove (LLD vector) ->
           state { bots = Map.insert botId movedBot bots
                 , energy = energy + Energy energyToMoveBot
                 }
@@ -35,7 +35,7 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
                 newBotCoord = translateBy vector $ coord bot
                 energyToMoveBot = manhattanDistance vector * 2
 
-        LMove (SLD vector1) (SLD vector2)        ->
+        LMove (SLD vector1) (SLD vector2) ->
           state { bots = Map.insert botId movedBot bots
                 , energy = energy + Energy energyToMoveBot
                 }
@@ -45,11 +45,11 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
 
         Fission _ncd _seedAmount -> undefined
 
-        FusionP _ncd            -> undefined
+        FusionP _ncd -> undefined
 
-        FusionS _ncd            -> undefined
+        FusionS _ncd -> undefined
 
-        Fill (NCD vector)               ->
+        Fill (NCD vector) ->
           state { filledVoxels = Set.insert coordToFill filledVoxels
                 , energy = energy + energyToFillVoxel
                 }
