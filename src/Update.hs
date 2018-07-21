@@ -31,7 +31,6 @@ performCommand (botId, cmd) state@State {..} =
         SMove (LLD vector) -> do
           guard $ isValidCoord matrix newBotCoord
           guard $ regionIsClear regionPassedThrough
-          -- TODO: check all coords along path are empty
           pure
             state
               { bots = Map.insert botId movedBot bots
