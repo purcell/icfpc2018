@@ -33,6 +33,7 @@ library
                 , Update
                 , Trace
                 , Astar
+                , Solver
   other-modules:
   hs-source-dirs:
                  src
