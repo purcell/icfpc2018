@@ -23,7 +23,7 @@ astarOn rep nexts start = go Set.empty (IntMap.singleton 0 [(0, start)])
                 work2 = foldl' addWork work1 (nexts x)
                 addWork w (x', stepcost, heuristic) =
                   let cost' = cost + stepcost
-                  in cost' `seq` pqueuePush (cost' + heuristic) (cost', x') w
+                   in cost' `seq` pqueuePush (cost' + heuristic) (cost', x') w
 
 pqueuePush :: Int -> a -> IntMap [a] -> IntMap [a]
 pqueuePush k v = IntMap.alter aux k
@@ -39,4 +39,4 @@ pqueueNext q = do
     [x] -> Just (x, q1)
     x:rest ->
       let q2 = IntMap.insert k rest q1
-      in q2 `seq` Just (x, q2)
+       in q2 `seq` Just (x, q2)

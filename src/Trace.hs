@@ -1,15 +1,16 @@
 {-# LANGUAGE NamedFieldPuns #-}
+
 module Trace
   ( toBinaryTrace
   , debugCmdBinary
   ) where
 
-import           Cmd
-import           Data.Binary.Put
-import           Data.Bits
+import Cmd
+import Data.Binary.Put
+import Data.Bits
 import qualified Data.ByteString.Lazy as BSL
-import           Data.Foldable        (traverse_)
-import           Data.Word
+import Data.Foldable (traverse_)
+import Data.Word
 
 toBinaryTrace :: [Cmd] -> BSL.ByteString
 toBinaryTrace cmds = runPut (putCmds cmds)
