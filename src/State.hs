@@ -2,15 +2,17 @@
 
 module State where
 
-import           Cmd   (Cmd)
-import           Model (Coordinate, Matrix)
+import           Cmd      (Cmd)
+import           Data.Set (Set)
+import           Model    (Coordinate, Matrix)
 
 data State =
-  State { energy    :: Energy
-        , harmonics :: Harmonics
-        , matrix    :: Matrix
-        , bots      :: [Bot]
-        , trace     :: [Cmd]
+  State { energy       :: Energy
+        , harmonics    :: Harmonics
+        , filledVoxels :: Set Coordinate
+        , matrix       :: Matrix
+        , bots         :: [Bot]
+        , trace        :: [Cmd]
         }
 
 newtype Energy = Energy Int

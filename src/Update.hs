@@ -2,10 +2,12 @@
 
 module Update where
 
-import           Cmd   (Cmd (..))
+import           Cmd      (Cmd (..), NCD (..))
 import qualified Cmd
-
-import           State (Bot, BotId, Energy, Harmonics (..), State (..))
+import qualified Data.Set as Set
+import           Model    (Coordinate (..))
+import           State    (Bot, BotId, Energy, Harmonics (..), State (..),
+                           coord)
 import qualified State
 
 update :: State -> State
@@ -26,7 +28,13 @@ performCommand (bot, cmd) state =
     Fission ncd seedAmount -> undefined
     FusionP ncd            -> undefined
     FusionS ncd            -> undefined
-    Fill ncd               -> undefined
+    Fill ncd               ->
+      state { filledVoxels = Set.insert coordFromNCD (filledVoxels state) }
+      where coordFromNCD = addNCD (coord bot) ncd
+
+addNCD :: Coordinate -> NCD -> Coordinate
+addNCD Coordinate{..} (NCD (dx, dy, dz)) =
+  Coordinate { cx = cx + dx, cy = cy + dy, cz = cz + dz }
 
 flipHarmonics :: Harmonics -> Harmonics
 flipHarmonics High = Low
