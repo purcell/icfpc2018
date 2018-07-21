@@ -4,6 +4,7 @@ module Cmd
   , LLD(..)
   , SLD(..)
   , NCD(..)
+  , VectorDiff(..)
   ) where
 
 data Cmd
@@ -11,25 +12,24 @@ data Cmd
   | Wait
   | FlipHarmonics
   | SMove LLD
-  | LMove SLD
-          SLD
-  | Fission NCD
-            SeedAmount
+  | LMove SLD SLD
+  | Fission NCD SeedAmount
   | FusionP NCD
   | FusionS NCD
   | Fill NCD
 
-newtype SeedAmount =
-  SeedAmount Int
+newtype SeedAmount = SeedAmount Int
 
 -- LLD: Long Linear Coordinate Difference
 -- SLD: Short Linear Coordinate Difference
 -- NCD: Near Coordinate Difference
-newtype LLD =
-  LLD (Int, Int, Int)
 
-newtype SLD =
-  SLD (Int, Int, Int)
+data VectorDiff = VectorDiff
+  { dx :: Int
+  , dy :: Int
+  , dz :: Int
+  } deriving (Eq, Ord, Show)
 
-newtype NCD =
-  NCD (Int, Int, Int)
+newtype LLD = LLD VectorDiff
+newtype SLD = SLD VectorDiff
+newtype NCD = NCD VectorDiff

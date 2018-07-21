@@ -3,17 +3,18 @@
 
 module State where
 
-import           Cmd      (Cmd)
-import           Data.Set (Set)
-import           qualified Data.Set as Set
-import           Model    (Coordinate(..), Matrix(..), VoxelState(..))
+import           Cmd             (Cmd)
+import           Data.Map.Strict as Map
+import           Data.Set        (Set)
+import qualified Data.Set        as Set
+import           Model           (Coordinate (..), Matrix (..), VoxelState (..))
 
 data State =
   State { energy       :: Energy
         , harmonics    :: Harmonics
         , filledVoxels :: Set Coordinate
         , matrix       :: Matrix
-        , bots         :: [Bot]
+        , bots         :: Map BotId Bot
         , trace        :: [Cmd]
         }
 
@@ -23,20 +24,22 @@ initialState m =
         , harmonics = Low
         , filledVoxels = Set.empty
         , matrix = m { matrixVoxelState = const Void }
-        , bots = [ Bot (BotId 1) (Coordinate 0 0 0) (BotId <$> [2..20])]
+        , bots = Map.fromList [ (BotId 1, Bot origin (BotId <$> [2..20]))]
         , trace = [] }
+
+origin :: Coordinate
+origin = Coordinate 0 0 0
 
 newtype Energy = Energy Int deriving (Num)
 
 data Harmonics = Low | High
 
 data Bot =
-  Bot { bid   :: BotId
-      , coord :: Coordinate
+  Bot { coord :: Coordinate
       , seeds :: [BotId]
       }
 
-newtype BotId = BotId Int
+newtype BotId = BotId Int deriving (Eq, Ord)
 
 checkForm :: State -> Either String State
 checkForm state@State{ .. }

@@ -1,14 +1,15 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module Trace
   ( toBinaryTrace
   , debugCmdBinary
   ) where
 
-import Cmd
-import Data.Binary.Put
-import Data.Bits
+import           Cmd
+import           Data.Binary.Put
+import           Data.Bits
 import qualified Data.ByteString.Lazy as BSL
-import Data.Foldable (traverse_)
-import Data.Word
+import           Data.Foldable        (traverse_)
+import           Data.Word
 
 toBinaryTrace :: [Cmd] -> BSL.ByteString
 toBinaryTrace cmds = runPut (putCmds cmds)
@@ -34,43 +35,43 @@ putCmd (Fission ncd (SeedAmount seedAmt)) = do
 putCmd (Fill ncd) = putWord8 (3 .|. shiftL (ncdBits ncd) 3)
 
 lldAxis :: LLD -> Word8
-lldAxis (LLD (dx, _, _))
+lldAxis (LLD VectorDiff {dx})
   | dx /= 0 = 1
-lldAxis (LLD (_, dy, _))
+lldAxis (LLD VectorDiff {dy})
   | dy /= 0 = 2
-lldAxis (LLD (_, _, dz))
+lldAxis (LLD VectorDiff {dz})
   | dz /= 0 = 3
 lldAxis _ = error "Invalid LLD!"
 
 lldIncr :: LLD -> Word8
-lldIncr (LLD (dx, _, _))
+lldIncr (LLD VectorDiff {dx})
   | dx /= 0 = fromIntegral $ dx + 15
-lldIncr (LLD (_, dy, _))
+lldIncr (LLD VectorDiff {dy})
   | dy /= 0 = fromIntegral $ dy + 15
-lldIncr (LLD (_, _, dz))
+lldIncr (LLD VectorDiff {dz})
   | dz /= 0 = fromIntegral $ dz + 15
 lldIncr _ = error "Invalid LLD!"
 
 sldAxis :: SLD -> Word8
-sldAxis (SLD (dx, _, _))
+sldAxis (SLD VectorDiff {dx})
   | dx /= 0 = 1
-sldAxis (SLD (_, dy, _))
+sldAxis (SLD VectorDiff {dy})
   | dy /= 0 = 2
-sldAxis (SLD (_, _, dz))
+sldAxis (SLD VectorDiff {dz})
   | dz /= 0 = 3
 sldAxis _ = error "Invalid SLD!"
 
 sldIncr :: SLD -> Word8
-sldIncr (SLD (dx, _, _))
+sldIncr (SLD VectorDiff {dx})
   | dx /= 0 = fromIntegral $ dx + 5
-sldIncr (SLD (_, dy, _))
+sldIncr (SLD VectorDiff {dy})
   | dy /= 0 = fromIntegral $ dy + 5
-sldIncr (SLD (_, _, dz))
+sldIncr (SLD VectorDiff {dz})
   | dz /= 0 = fromIntegral $ dz + 5
 sldIncr _ = error "Invalid SLD!"
 
 ncdBits :: NCD -> Word8
-ncdBits (NCD (dx, dy, dz)) =
+ncdBits (NCD VectorDiff {dx, dy, dz}) =
   fromIntegral $ (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
 
 debugCmdBinary :: Cmd -> String
