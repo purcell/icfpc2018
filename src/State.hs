@@ -36,7 +36,9 @@ initialBot =
 origin :: Coordinate
 origin = Coordinate 0 0 0
 
-newtype Energy = Energy Int deriving (Num, Show, Eq, Ord, Enum, Real, Integral)
+newtype Energy =
+  Energy Integer
+  deriving (Num, Show, Eq, Ord, Enum, Real, Integral)
 
 data Harmonics = Low | High deriving (Show, Eq, Ord)
 
