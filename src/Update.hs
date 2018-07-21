@@ -16,29 +16,35 @@ import qualified State
 
 performCommand :: (BotId, Cmd) -> State -> Maybe State
 performCommand (botId, cmd) state@State{..} =
-  Just newState { trace = trace ++ [cmd] }
+  (\s -> s { trace = trace ++ [cmd] }) <$> newState
   where
     bot = bots Map.! botId
     newState =
       case cmd of
-        Halt -> undefined
+        Halt ->
+          if notOneBot || botNotAtOrigin
+          then Nothing
+          else Just state { bots = Map.empty }
+          where
+            notOneBot = length bots /= 1
+            botNotAtOrigin = coord bot == State.origin
 
-        Wait -> state
+        Wait -> Just state
 
-        FlipHarmonics -> state { harmonics = flipHarmonics harmonics }
+        FlipHarmonics -> Just state { harmonics = flipHarmonics harmonics }
 
         SMove (LLD vector) ->
-          state { bots = Map.insert botId movedBot bots
-                , energy = energy + Energy energyToMoveBot
-                }
+          Just state { bots = Map.insert botId movedBot bots
+                     , energy = energy + Energy energyToMoveBot
+                     }
           where movedBot = bot { coord = newBotCoord }
                 newBotCoord = translateBy vector $ coord bot
                 energyToMoveBot = manhattanDistance vector * 2
 
         LMove (SLD vector1) (SLD vector2) ->
-          state { bots = Map.insert botId movedBot bots
-                , energy = energy + Energy energyToMoveBot
-                }
+          Just state { bots = Map.insert botId movedBot bots
+                     , energy = energy + Energy energyToMoveBot
+                     }
           where movedBot = bot { coord = newBotCoord }
                 newBotCoord = (translateBy vector1 . translateBy vector2) $ coord bot
                 energyToMoveBot = 2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2)
@@ -50,7 +56,7 @@ performCommand (botId, cmd) state@State{..} =
         FusionS _ncd -> undefined
 
         Fill (NCD vector) ->
-          state { matrix = fillVoxel matrix coordToFill
+          Just state { matrix = fillVoxel matrix coordToFill
                 , energy = energy + energyToFillVoxel
                 }
           where coordToFill = translateBy vector $ coord bot

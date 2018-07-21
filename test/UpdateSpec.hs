@@ -28,14 +28,14 @@ spec =
         True === True
 
     describe "Wait" $
-      it "returns the state unaltered" $
+      it "returns the state with the wait command appended to the trace" $
         performCommand (initialBotId, Cmd.Wait) initialState
-          `shouldBe` Just initialState
+          `shouldBe` Just initialState { trace = [Cmd.Wait] }
 
     describe "FlipHarmonics" $
       it "flips dem harmonics" $
-        performCommand (initialBotId, Cmd.FlipHarmonics) initialState
-          `shouldBe` Just (initialState { harmonics = High })
+         harmonics <$> performCommand (initialBotId, Cmd.FlipHarmonics) initialState
+          `shouldBe` Just High
 
     describe "SMove" $ do
       let lld = LLD VectorDiff { dx = 5, dy = 0, dz = 0 }
