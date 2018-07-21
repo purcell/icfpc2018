@@ -8,6 +8,7 @@ import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
 import           Model           (Coordinate (..))
+import           Model           (Coordinate (..), Matrix(..), isFilled, fillVoxel)
 import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
 
@@ -49,12 +50,12 @@ performCommand (botId, cmd) state@State{..} =
         FusionS _ncd -> undefined
 
         Fill (NCD vector) ->
-          state { filledVoxels = Set.insert coordToFill filledVoxels
+          state { matrix = fillVoxel matrix coordToFill
                 , energy = energy + energyToFillVoxel
                 }
           where coordToFill = translateBy vector $ coord bot
                 energyToFillVoxel =
-                  if Set.member coordToFill filledVoxels then
+                  if isFilled matrix coordToFill then
                     6
                   else
                     12

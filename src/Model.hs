@@ -19,10 +19,14 @@ data Coordinate = Coordinate
 data Matrix = Matrix
   { matrixResolution :: !Int
   , matrixFilledVoxels :: S.Set Coordinate
-  } deriving (Eq, Ord)
+  } deriving (Eq, Ord, Show)
 
 isFilled :: Matrix -> Coordinate -> Bool
 isFilled Matrix {..} c = c `S.member` matrixFilledVoxels
+
+fillVoxel :: Matrix -> Coordinate -> Matrix
+fillVoxel m@Matrix {..} c =
+  m {matrixFilledVoxels = S.insert c matrixFilledVoxels}
 
 isGrounded :: Matrix -> Coordinate -> Bool
 isGrounded = go S.empty

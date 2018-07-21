@@ -5,23 +5,22 @@ module State where
 
 import           Cmd             (Cmd)
 import           Data.Map.Strict as Map
-import           Data.Set        (Set)
 import qualified Data.Set        as Set
-import           Model           (Coordinate (..))
+import           Model           (Coordinate (..), Matrix(..))
 
 data State =
   State { energy       :: Energy
         , harmonics    :: Harmonics
-        , filledVoxels :: Set Coordinate
+        , matrix       :: Matrix
         , bots         :: Map BotId Bot
         , trace        :: [Cmd]
         } deriving (Show, Eq, Ord)
 
-initialState :: State
-initialState =
+initialState :: Matrix -> State
+initialState target =
   State { energy = 0
         , harmonics = Low
-        , filledVoxels = Set.empty
+        , matrix = target { matrixFilledVoxels = Set.empty }
         , bots = Map.fromList [ (initialBotId, initialBot)]
         , trace = [] }
 
