@@ -8,7 +8,7 @@ import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
 import           Model           (Coordinate (..), Matrix (..), fillVoxel,
-                                  isFilled)
+                                  isFilled, isValidCoord)
 import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
 
@@ -22,10 +22,11 @@ performCommand (botId, cmd) state@State{..} =
     newState =
       case cmd of
         Halt ->
-          if onlyOneBot && botAtOrigin
+          if onlyOneBot && botAtOrigin && isComplete
           then Just $ state { bots = Map.empty }
           else Nothing
           where
+            isComplete = matrix == target
             onlyOneBot = length bots == 1
             botAtOrigin = coord bot == State.origin
 
@@ -34,9 +35,11 @@ performCommand (botId, cmd) state@State{..} =
         FlipHarmonics -> Just state { harmonics = flipHarmonics harmonics }
 
         SMove (LLD vector) ->
-          Just state { bots = Map.insert botId movedBot bots
-                     , energy = energy + Energy energyToMoveBot
-                     }
+          if isValidCoord matrix newBotCoord
+          then Just state { bots = Map.insert botId movedBot bots
+                          , energy = energy + Energy energyToMoveBot
+                          }
+          else Nothing
           where movedBot = bot { coord = newBotCoord }
                 newBotCoord = translateBy vector $ coord bot
                 energyToMoveBot = manhattanDistance vector * 2
