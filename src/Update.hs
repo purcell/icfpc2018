@@ -7,7 +7,6 @@ import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
                                   VectorDiff (..))
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
-import           Debug.Trace     as Debug
 import           Model           (Coordinate (..))
 import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
@@ -15,8 +14,8 @@ import           State           (BotId, Energy (..), Harmonics (..),
 import qualified State
 
 performCommand :: (BotId, Cmd) -> State -> Maybe State
-performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
-  Just newState
+performCommand (botId, cmd) state@State{..} =
+  Just newState { trace = trace ++ [cmd] }
   where
     bot = bots Map.! botId
     newState =
@@ -25,7 +24,7 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
 
         Wait -> state
 
-        FlipHarmonics -> state { harmonics = flipHarmonics $ harmonics state }
+        FlipHarmonics -> state { harmonics = flipHarmonics harmonics }
 
         SMove (LLD vector) ->
           state { bots = Map.insert botId movedBot bots
