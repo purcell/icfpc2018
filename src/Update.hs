@@ -3,6 +3,7 @@
 
 module Update where
 
+import           Control.Monad   (guard)
 import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
                                   VectorDiff (..))
 import           Data.Map.Strict as Map
@@ -11,41 +12,39 @@ import           Model           (Coordinate (..), Matrix (..), fillVoxel,
                                   isFilled, isValidCoord)
 import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
-
 import qualified State
 
-performCommand :: (BotId, Cmd) -> State -> Maybe State
+performCommand ::  (BotId, Cmd) -> State -> Maybe State
 performCommand (botId, cmd) state@State{..} =
   (\s -> s { trace = trace ++ [cmd] }) <$> newState
   where
     bot = bots Map.! botId
     newState =
       case cmd of
-        Halt ->
-          if onlyOneBot && botAtOrigin && isComplete
-          then Just $ state { bots = Map.empty }
-          else Nothing
+        Halt -> do
+          guard (onlyOneBot && botAtOrigin && isComplete)
+          pure $ state { bots = Map.empty }
           where
             isComplete = matrix == target
             onlyOneBot = length bots == 1
             botAtOrigin = coord bot == State.origin
 
-        Wait -> Just state
+        Wait -> pure state
 
-        FlipHarmonics -> Just state { harmonics = flipHarmonics harmonics }
+        FlipHarmonics -> pure state { harmonics = flipHarmonics harmonics }
 
-        SMove (LLD vector) ->
-          if isValidCoord matrix newBotCoord
-          then Just state { bots = Map.insert botId movedBot bots
-                          , energy = energy + Energy energyToMoveBot
-                          }
-          else Nothing
+        SMove (LLD vector) -> do
+          guard $ isValidCoord matrix newBotCoord
+          -- TODO: check all coords along path are empty
+          pure state { bots = Map.insert botId movedBot bots
+                     , energy = energy + Energy energyToMoveBot
+                     }
           where movedBot = bot { coord = newBotCoord }
                 newBotCoord = translateBy vector $ coord bot
                 energyToMoveBot = manhattanDistance vector * 2
 
         LMove (SLD vector1) (SLD vector2) ->
-          Just state { bots = Map.insert botId movedBot bots
+          pure state { bots = Map.insert botId movedBot bots
                      , energy = energy + Energy energyToMoveBot
                      }
           where movedBot = bot { coord = newBotCoord }
@@ -58,10 +57,11 @@ performCommand (botId, cmd) state@State{..} =
 
         FusionS _ncd -> undefined
 
-        Fill (NCD vector) ->
-          Just state { matrix = fillVoxel matrix coordToFill
-                , energy = energy + energyToFillVoxel
-                }
+        Fill (NCD vector) -> do
+          guard $ isValidCoord matrix coordToFill
+          pure state { matrix = fillVoxel matrix coordToFill
+                     , energy = energy + energyToFillVoxel
+                     }
           where coordToFill = translateBy vector $ coord bot
                 energyToFillVoxel =
                   if isFilled matrix coordToFill then
