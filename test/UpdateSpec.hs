@@ -18,7 +18,7 @@ main = hspec spec
 
 initialState :: State
 initialState =
-  State.initialState
+  State.initialState Matrix { matrixResolution = 50, matrixFilledVoxels = Set.empty }
 
 spec :: Spec
 spec =
@@ -71,9 +71,9 @@ spec =
           maybeState = performCommand (initialBotId, Cmd.Fill ncd) initialState
 
       it "fills the voxel at the specified vector" $ do
-        let expectedVoxels = Set.fromList [ Coordinate { cx = 1, cy = 0, cz = 0 } ]
+        let expectedCoord = Coordinate { cx = 1, cy = 0, cz = 0 }
 
-        filledVoxels <$> maybeState `shouldBe` Just expectedVoxels
+        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just True
 
       it "adjusts the energy by 12 when the specified voxel was Void" $
         energy <$> maybeState `shouldBe` Just 12
