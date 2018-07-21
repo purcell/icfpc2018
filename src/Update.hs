@@ -8,7 +8,7 @@ import Control.Applicative
 import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Model (Coordinate(..), Matrix(..), fillVoxel, isFilled, isValidCoord)
+import Model (Coordinate(..), Matrix(..), fillVoxel, isFilled, isValidCoord, isGrounded)
 import State (BotId, Energy(..), Harmonics(..), State(..), coord)
 import qualified State
 
@@ -56,19 +56,19 @@ performCommand (botId, cmd) state@State {..} =
         FusionP _ncd -> undefined
         FusionS _ncd -> undefined
         Fill (NCD vector)
-          -- TODO: ensure the filled voxel is grounded
          -> do
           guard $ isFilled target coordToFill
+          guard $ isGrounded matrix coordToFill
           pure
             state
-              { matrix = fillVoxel matrix coordToFill
+              { matrix = updatedMatrix
               , energy = energy + energyToFillVoxel
               }
           where coordToFill = translateBy vector $ coord bot
-                energyToFillVoxel =
+                (updatedMatrix, energyToFillVoxel) =
                   if isFilled matrix coordToFill
-                    then 6
-                    else 12
+                    then (matrix, 6)
+                    else (fillVoxel matrix coordToFill, 12)
 
 region :: Coordinate -> Coordinate -> [Coordinate]
 region c1 c2 =

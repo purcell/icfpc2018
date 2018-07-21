@@ -20,7 +20,7 @@ initialState :: State
 initialState =
   State.initialState
     Matrix { matrixResolution = 50
-           , matrixFilledVoxels = Set.fromList [Coordinate { cx = 1, cy = 0, cz = 0 }]
+           , matrixFilledVoxels = Set.fromList [Coordinate { cx = 1, cy = 0, cz = 0 }, Coordinate { cx = 0, cy = 5, cz = 0 }]
            }
 
 spec :: Spec
@@ -79,8 +79,16 @@ spec =
         ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just True
 
       it "does not fill the voxel at the specified vector if it is not filled in the target" $ do
-        let ncd = NCD VectorDiff { dx = 1, dy = 3, dz = 0 }
-            expectedCoord = Coordinate { cx = 1, cy = 3, cz = 0 }
+        let ncd = NCD VectorDiff { dx = 1, dy = 0, dz = 2 }
+            expectedCoord = Coordinate { cx = 1, cy = 0, cz = 2 }
+            maybeState = performCommand (initialBotId, Cmd.Fill ncd) initialState
+
+        ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just False
+
+      it "does not fill the voxel at the specified vector if it is not grounded" $ do
+        let ncd = NCD VectorDiff { dx = 0, dy = 5, dz = 0 }
+            expectedCoord = Coordinate { cx = 0, cy = 5, cz = 0 }
+            maybeState = performCommand (initialBotId, Cmd.Fill ncd) initialState
 
         ((flip isFilled) expectedCoord . matrix) <$> maybeState `shouldBe` Just False
 
