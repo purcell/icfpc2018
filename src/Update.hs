@@ -3,7 +3,8 @@
 
 module Update where
 
-import           Cmd             (Cmd (..), LLD (..), NCD (..), VectorDiff (..))
+import           Cmd             (Cmd (..), LLD (..), NCD (..), SLD (..),
+                                  VectorDiff (..))
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
 import           Debug.Trace     as Debug
@@ -36,7 +37,13 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
                 newBotCoord = translateBy vector $ coord bot
                 energyToMoveBot = manhattanDistance vector * 2
 
-        LMove sld1 sld2        -> undefined
+        LMove (SLD vector1) (SLD vector2)        ->
+          state { bots = Map.insert botId movedBot bots
+                , energy = energy + Energy energyToMoveBot
+                }
+          where movedBot = bot { coord = newBotCoord }
+                newBotCoord = (translateBy vector1 . translateBy vector2) $ coord bot
+                energyToMoveBot = 2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2)
 
         Fission ncd seedAmount -> undefined
 
