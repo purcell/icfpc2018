@@ -92,6 +92,9 @@ translateBy VectorDiff {..} Coordinate {..} =
 manhattanDistance :: VectorDiff -> Int
 manhattanDistance VectorDiff {..} = abs dx + abs dy + abs dz
 
+diffCoords :: Coordinate -> Coordinate -> VectorDiff
+diffCoords c1 c2 = VectorDiff (cx c2 - cx c1) (cy c2 - cy c1) (cz c2 - cz c1)
+
 chessboardLength :: VectorDiff -> Int
 chessboardLength VectorDiff {..} = maximum [abs dx, abs dy, abs dz]
 

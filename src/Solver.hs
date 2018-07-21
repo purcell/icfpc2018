@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Solver where
 
 import Astar
@@ -7,16 +9,25 @@ import Data.Maybe (listToMaybe)
 import qualified Data.Set as Set
 import Model
 import State
+import Trace (unsafeDumpTrace)
 import Update
 
 solve :: Matrix -> Maybe (State, Int)
 solve m =
   listToMaybe $
-  filter ((0 ==) . distanceFromCompletion . fst) $ astar nexts (initialState m)
+  filter (elem Halt . trace . fst) $ astar (traceSome . nexts) (initialState m)
+
+traceSome :: [(State, Int, Int)] -> [(State, Int, Int)]
+traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
+  where
+    maybeTrace state = ()
+      -- if length (trace state) == 3
+      --   then unsafeDumpTrace (trace state)
+      --   else ()
 
 nexts :: State -> [(State, Int, Int)]
 nexts state =
-  [ (state, cost, distanceFromCompletion state)
+  [ (nextState, cost, distanceFromCompletion nextState)
   | nextState <- movesFromState state
   , let cost = fromIntegral (energy nextState - energy state)
   ]
@@ -61,12 +72,18 @@ nearCoordinateDiffs =
 
 distanceFromCompletion :: State -> Int
 distanceFromCompletion s =
-  unfilledVoxelCount + remainingBots + harmonicSettingDistance
+  remainingBots + harmonicSettingDistance +
+  distancesFromNearestNeededFillLocations
   where
-    unfilledVoxelCount =
-      Set.size $
+    unfilledVoxels =
       matrixFilledVoxels (target s) `Set.difference`
       matrixFilledVoxels (matrix s)
+    distancesFromNearestNeededFillLocations =
+      sum
+        [ manhattanDistance (diffCoords coord unfilled)
+        | Bot {..} <- Map.elems (bots s)
+        , unfilled <- Set.toList unfilledVoxels
+        ]
     remainingBots = length (bots s)
     harmonicSettingDistance =
       case harmonics s of

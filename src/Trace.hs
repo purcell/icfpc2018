@@ -1,9 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Trace
   ( toBinaryTrace
   , debugCmdBinary
   , dumpTrace
+  , unsafeDumpTrace
   ) where
 
 import Cmd
@@ -12,9 +14,17 @@ import Data.Bits
 import qualified Data.ByteString.Lazy as BSL
 import Data.Foldable (traverse_)
 import Data.Word
+import System.IO.Unsafe (unsafePerformIO)
+import System.Random (randomIO)
 
 dumpTrace :: [Cmd] -> FilePath -> IO ()
 dumpTrace cmds traceFile = BSL.writeFile traceFile (toBinaryTrace cmds)
+
+unsafeDumpTrace :: [Cmd] -> ()
+unsafeDumpTrace cmds =
+  unsafePerformIO $ do
+    n :: Int <- randomIO
+    dumpTrace cmds ("/tmp/traces/" ++ show n)
 
 toBinaryTrace :: [Cmd] -> BSL.ByteString
 toBinaryTrace cmds = runPut (putCmds cmds)

@@ -42,6 +42,7 @@ library
               , bytestring
               , containers
               , mtl
+              , random
               , text
               , unordered-containers
               , vector
