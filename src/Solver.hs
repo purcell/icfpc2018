@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Solver where
 
 import Astar
@@ -12,11 +10,13 @@ import State
 import Update
 
 solve :: Matrix -> Maybe (State, Int)
-solve m = listToMaybe $ astar (nexts m) (initialState m)
+solve m =
+  listToMaybe $
+  filter ((0 ==) . distanceFromCompletion . fst) $ astar nexts (initialState m)
 
-nexts :: Matrix -> State -> [(State, Int, Int)]
-nexts target state =
-  [ (state, cost, distanceFromCompletion target state)
+nexts :: State -> [(State, Int, Int)]
+nexts state =
+  [ (state, cost, distanceFromCompletion state)
   | nextState <- movesFromState state
   , let cost = fromIntegral (energy nextState - energy state)
   ]
@@ -47,23 +47,24 @@ nearCoordinateDiffs :: [NCD]
 nearCoordinateDiffs =
   NCD <$>
   [ diff
-  | dx <- [-1 .. 1]
-  , dy <- [-1 .. 1]
-  , dz <- [-1 .. 1]
-  , let diff = VectorDiff dx dy dz
+  | dx' <- [-1 .. 1]
+  , dy' <- [-1 .. 1]
+  , dz' <- [-1 .. 1]
+  , let diff = VectorDiff dx' dy' dz'
   , isNCD diff
   ]
     -- TODO: should be a smart constructor somewhere
   where
     isNCD d = manhattanDistance d <= 2 && chessboardLength d == 1
 
-distanceFromCompletion :: Matrix -> State -> Int
-distanceFromCompletion target s =
+distanceFromCompletion :: State -> Int
+distanceFromCompletion s =
   unfilledVoxelCount + remainingBots + harmonicSettingDistance
   where
     unfilledVoxelCount =
       Set.size $
-      matrixFilledVoxels target `Set.difference` matrixFilledVoxels (matrix s)
+      matrixFilledVoxels (target s) `Set.difference`
+      matrixFilledVoxels (matrix s)
     remainingBots = length (bots s)
     harmonicSettingDistance =
       case harmonics s of
