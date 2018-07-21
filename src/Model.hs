@@ -6,6 +6,7 @@ import Data.Binary.Get
 import Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Set as S
 import qualified Data.Vector as V
 import Data.Word
 
@@ -26,11 +27,17 @@ data Matrix = Matrix
   }
 
 isGrounded :: Matrix -> Coordinate -> Bool
-isGrounded m c
-  | Void == matrixVoxelState m c = False
-isGrounded _ c
-  | cy c == 0 = True
-isGrounded m c = any (isGrounded m) (nonDiagonalNeighbours m c)
+isGrounded = go S.empty
+  where
+    go :: S.Set Coordinate -> Matrix -> Coordinate -> Bool
+    go _ m c
+      | Void == matrixVoxelState m c = False
+    go _ _ c
+      | cy c == 0 = True
+    go seen m c =
+      any
+        (go (S.insert c seen) m)
+        (filter (`S.notMember` seen) (nonDiagonalNeighbours m c))
 
 nonDiagonalNeighbours :: Matrix -> Coordinate -> [Coordinate]
 nonDiagonalNeighbours m Coordinate {..} =
