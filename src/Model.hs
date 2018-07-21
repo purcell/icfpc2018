@@ -11,13 +11,13 @@ import qualified Data.Vector as V
 import Data.Word
 
 data Coordinate = Coordinate
-  { cx :: Int
-  , cy :: Int
-  , cz :: Int
+  { cx :: !Int
+  , cy :: !Int
+  , cz :: !Int
   } deriving (Eq, Ord, Show)
 
 data Matrix = Matrix
-  { matrixResolution :: Int
+  { matrixResolution :: !Int
   , matrixFilledVoxels :: S.Set Coordinate
   } deriving (Eq, Ord)
 
