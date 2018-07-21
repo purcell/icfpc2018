@@ -29,6 +29,8 @@ library
                   Lib
                 , Cmd
                 , Model
+                , State
+                , Update
   other-modules:
   hs-source-dirs:
                  src
