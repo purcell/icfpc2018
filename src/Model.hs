@@ -25,31 +25,47 @@ data Matrix = Matrix
   , matrixVoxelState :: Coordinate -> VoxelState
   }
 
-coordRange :: Int -> [Int]
-coordRange res = [0 .. res - 1]
+isGrounded :: Matrix -> Coordinate -> Bool
+isGrounded m c
+  | Void == matrixVoxelState m c = False
+isGrounded _ c
+  | cy c == 0 = True
+isGrounded m c = any (isGrounded m) (nonDiagonalNeighbours m c)
+
+nonDiagonalNeighbours :: Matrix -> Coordinate -> [Coordinate]
+nonDiagonalNeighbours m Coordinate {..} =
+  filter
+    (isValidCoord m)
+    [ Coordinate (cx + dx) (cy + dy) (cz + dz)
+    | (dx, dy, dz) <-
+        [(-1, 0, 0), (0, -1, 0), (0, 0, -1), (1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    ]
+
+isValidCoord :: Matrix -> Coordinate -> Bool
+isValidCoord m Coordinate {..} = inRange cx && inRange cy && inRange cz
+  where
+    inRange i = i >= 0 && i < matrixResolution m
+
+coordRange :: Matrix -> [Int]
+coordRange Matrix {..} = [0 .. matrixResolution - 1]
 
 showSlice :: Matrix -> Int -> String
-showSlice m y = unlines (row <$> reverse (coordRange (matrixResolution m)))
+showSlice m y = unlines (row <$> reverse (coordRange m))
   where
     row z =
-      [ voxelChar (matrixVoxelState m (Coordinate x y z))
-      | x <- coordRange (matrixResolution m)
-      ]
+      [voxelChar (matrixVoxelState m (Coordinate x y z)) | x <- coordRange m]
     voxelChar Void = '.'
     voxelChar Full = 'X'
 
-newtype Model =
-  Model Matrix
+modelFromFile :: FilePath -> IO Matrix
+modelFromFile path = runGet getMatrix <$> BSL.readFile path
 
-modelFromFile :: FilePath -> IO Model
-modelFromFile path = runGet getModel <$> BSL.readFile path
-
-getModel :: Get Model
-getModel = do
+getMatrix :: Get Matrix
+getMatrix = do
   res <- fromIntegral <$> getWord8
   let bytesToRead = ceiling (fromIntegral (res * res * res) / 8 :: Rational)
   bytes <- V.fromList . BS.unpack <$> getByteString bytesToRead
-  return (Model (Matrix res (voxelStateAt bytes res)))
+  return (Matrix res (voxelStateAt bytes res))
 
 voxelStateAt :: V.Vector Word8 -> Int -> Coordinate -> VoxelState
 voxelStateAt bytes res Coordinate {..} =
