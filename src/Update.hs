@@ -4,14 +4,13 @@
 module Update where
 
 import           Cmd             (Cmd (..), LLD (..), NCD (..), VectorDiff (..))
-import qualified Cmd
-import qualified Data.Map        (Map)
 import           Data.Map.Strict as Map
 import qualified Data.Set        as Set
 import           Debug.Trace     as Debug
 import           Model           (Coordinate (..))
-import           State           (Bot, BotId, Energy (..), Harmonics (..),
+import           State           (BotId, Energy (..), Harmonics (..),
                                   State (..), coord)
+
 import qualified State
 
 performCommand :: (BotId, Cmd) -> State -> Maybe State
@@ -61,7 +60,7 @@ translateBy VectorDiff{..} Coordinate{..} =
   Coordinate { cx = cx + dx, cy = cy + dy, cz = cz + dz }
 
 manhattanDistance :: VectorDiff -> Int
-manhattanDistance v = (abs $ dx v) + (abs $ dy v) + (abs $ dz v)
+manhattanDistance VectorDiff{..} = abs dx + abs dy + abs dz
 
 flipHarmonics :: Harmonics -> Harmonics
 flipHarmonics High = Low
