@@ -32,6 +32,7 @@ library
                 , State
                 , Update
                 , Trace
+                , Astar
   other-modules:
   hs-source-dirs:
                  src
