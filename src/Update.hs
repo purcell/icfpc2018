@@ -45,11 +45,11 @@ performCommand (botId, cmd) state@State{energy, filledVoxels, bots} =
                 newBotCoord = (translateBy vector1 . translateBy vector2) $ coord bot
                 energyToMoveBot = 2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2)
 
-        Fission ncd seedAmount -> undefined
+        Fission _ncd _seedAmount -> undefined
 
-        FusionP ncd            -> undefined
+        FusionP _ncd            -> undefined
 
-        FusionS ncd            -> undefined
+        FusionS _ncd            -> undefined
 
         Fill (NCD vector)               ->
           state { filledVoxels = Set.insert coordToFill filledVoxels
