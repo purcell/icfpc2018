@@ -21,11 +21,11 @@ performCommand (botId, cmd) state@State {..} =
     newState =
       case cmd of
         Halt -> do
-          guard (onlyOneBot && botAtOrigin && isComplete)
+          guard $ length bots == 1
+          guard $ coord bot == State.origin
+          guard $ matrix == target
+          guard $ harmonics == Low
           pure $ state {bots = Map.empty}
-          where isComplete = matrix == target
-                onlyOneBot = length bots == 1
-                botAtOrigin = coord bot == State.origin
         Wait -> pure state
         FlipHarmonics -> pure state {harmonics = flipHarmonics harmonics}
         SMove (LLD vector) -> do
