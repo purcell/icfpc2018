@@ -25,11 +25,13 @@ newtype SeedAmount =
 -- LLD: Long Linear Coordinate Difference
 -- SLD: Short Linear Coordinate Difference
 -- NCD: Near Coordinate Difference
-newtype LLD =
-  LLD (Int, Int, Int)
 
-newtype SLD =
-  SLD (Int, Int, Int)
+data VectorDiff = VectorDiff
+  { dx :: Int
+  , dy :: Int
+  , dz :: Int
+  } deriving (Eq, Ord, Show)
 
-newtype NCD =
-  NCD (Int, Int, Int)
+newtype LLD = LLD VectorDiff
+newtype SLD = SLD VectorDiff
+newtype NCD = NCD VectorDiff
