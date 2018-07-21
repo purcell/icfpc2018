@@ -5,7 +5,8 @@ module State where
 
 import           Cmd      (Cmd)
 import           Data.Set (Set)
-import           Model    (Coordinate, Matrix)
+import           qualified Data.Set as Set
+import           Model    (Coordinate(..), Matrix(..), VoxelState(..))
 
 data State =
   State { energy       :: Energy
@@ -15,6 +16,15 @@ data State =
         , bots         :: [Bot]
         , trace        :: [Cmd]
         }
+
+initialState :: Matrix -> State
+initialState m =
+  State { energy = 0
+        , harmonics = Low
+        , filledVoxels = Set.empty
+        , matrix = m { matrixVoxelState = const Void }
+        , bots = [ Bot (BotId 1) (Coordinate 0 0 0) (BotId <$> [2..20])]
+        , trace = [] }
 
 newtype Energy = Energy Int deriving (Num)
 
