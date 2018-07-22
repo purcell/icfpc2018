@@ -8,7 +8,14 @@ import Control.Applicative
 import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Model (Coordinate(..), Matrix(..), fillVoxel, isFilled, isValidCoord, isGrounded)
+import Model
+  ( Coordinate(..)
+  , Matrix(..)
+  , fillVoxel
+  , isFilled
+  , isGrounded
+  , isValidCoord
+  )
 import State (BotId, Energy(..), Harmonics(..), State(..), coord)
 import qualified State
 
@@ -51,22 +58,19 @@ performCommand (botId, cmd) state@State {..} =
           where movedBot = bot {coord = coord''}
                 coord' = translateBy vector1 $ coord bot
                 coord'' = translateBy vector2 $ coord'
-                regionPassedThrough = region (coord bot) coord' ++ region coord' coord''
+                regionPassedThrough =
+                  region (coord bot) coord' ++ region coord' coord''
                 energyToMoveBot =
                   2 *
                   (manhattanDistance vector1 + 2 + manhattanDistance vector2)
         Fission _ncd _seedAmount -> undefined
         FusionP _ncd -> undefined
         FusionS _ncd -> undefined
-        Fill (NCD vector)
-         -> do
+        Fill (NCD vector) -> do
           guard $ isFilled target coordToFill
           guard $ isGrounded updatedMatrix coordToFill
           pure
-            state
-              { matrix = updatedMatrix
-              , energy = energy + energyToFillVoxel
-              }
+            state {matrix = updatedMatrix, energy = energy + energyToFillVoxel}
           where coordToFill = translateBy vector $ coord bot
                 (updatedMatrix, energyToFillVoxel) =
                   if isFilled matrix coordToFill
