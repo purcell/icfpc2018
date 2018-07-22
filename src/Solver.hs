@@ -15,13 +15,19 @@ import Update
 solve :: Matrix -> Maybe (State, Int)
 solve m =
   listToMaybe $
-  filter (elem Halt . trace . fst) $ astar (traceSome . nexts) (initialState m)
+  filter (elem Halt . trace . fst) $
+  astarOn stateFingerprint (traceSome . nexts) (initialState m)
+
+stateFingerprint :: State -> (Map.Map BotId Bot, Harmonics, Matrix)
+stateFingerprint State {..} = (bots, harmonics, matrix)
 
 traceSome :: [(State, Int, Int)] -> [(State, Int, Int)]
 traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
   where
+    anyFills s = not (null [True | (Fill _) <- trace s])
+    allFilled s = matrix s == target s
     maybeTrace state = ()
-      -- if length (trace state) == 3
+      -- if length (trace state) == 75
       --   then unsafeDumpTrace (trace state)
       --   else ()
 
@@ -44,7 +50,7 @@ possibleCommands s =
   ]
 
 commandsForBot :: State -> Bot -> [Cmd]
-commandsForBot _state _bot = [Halt] ++ smoves ++ lmoves ++ fills
+commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
   where
     deltas = [-15 .. (-1)] ++ [1 .. 15]
     fills = Fill <$> nearCoordinateDiffs
@@ -72,18 +78,37 @@ nearCoordinateDiffs =
 
 distanceFromCompletion :: State -> Int
 distanceFromCompletion s =
-  remainingBots + harmonicSettingDistance +
-  distancesFromNearestNeededFillLocations
+  unfilledScore + remainingBots + harmonicSettingDistance +
+  distancesFromVoxelsToBeFilled +
+  distanceFromOriginOnceDone
   where
+    unfilledScore =
+      sum
+        [ (1 +
+           case harmonics s of
+             Low -> cy c
+             _ -> 0) *
+        100
+        | c <- Set.toList unfilledVoxels
+        ]
     unfilledVoxels =
       matrixFilledVoxels (target s) `Set.difference`
       matrixFilledVoxels (matrix s)
-    distancesFromNearestNeededFillLocations =
-      sum
-        [ manhattanDistance (diffCoords coord unfilled)
-        | Bot {..} <- Map.elems (bots s)
-        , unfilled <- Set.toList unfilledVoxels
-        ]
+    distanceFromOriginOnceDone =
+      if Set.null unfilledVoxels
+        then sum
+               [ chessboardLength (diffCoords coord origin)
+               | Bot {..} <- Map.elems (bots s)
+               ]
+        else 0
+    distancesFromVoxelsToBeFilled =
+      if Set.null unfilledVoxels
+        then 0
+        else minimum
+               [ chessboardLength (diffCoords coord unfilled)
+               | Bot {..} <- Map.elems (bots s)
+               , unfilled <- Set.toList unfilledVoxels
+               ]
     remainingBots = length (bots s)
     harmonicSettingDistance =
       case harmonics s of
