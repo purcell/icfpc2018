@@ -1,11 +1,10 @@
 module Cmd
   ( Cmd(..)
   , SeedAmount(..)
-  , LLD(..)
-  , SLD(..)
-  , NCD(..)
-  , VectorDiff(..)
+  , mkLLD
   ) where
+
+import Geometry (LLD, NCD, SLD, mkLLD)
 
 data Cmd
   = Halt
@@ -23,25 +22,4 @@ data Cmd
 
 newtype SeedAmount =
   SeedAmount Int
-  deriving (Show, Eq, Ord)
-
--- LLD: Long Linear Coordinate Difference
--- SLD: Short Linear Coordinate Difference
--- NCD: Near Coordinate Difference
-data VectorDiff = VectorDiff
-  { dx :: !Int
-  , dy :: !Int
-  , dz :: !Int
-  } deriving (Eq, Ord, Show)
-
-newtype LLD =
-  LLD VectorDiff
-  deriving (Show, Eq, Ord)
-
-newtype SLD =
-  SLD VectorDiff
-  deriving (Show, Eq, Ord)
-
-newtype NCD =
-  NCD VectorDiff
   deriving (Show, Eq, Ord)

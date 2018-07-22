@@ -6,7 +6,8 @@ module State where
 import Cmd (Cmd)
 import Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Model (Coordinate(..), Matrix(..))
+import Geometry (Coordinate(..), origin)
+import Model (Matrix(..))
 
 data State = State
   { energy :: Energy
@@ -33,9 +34,6 @@ initialBotId = BotId 1
 
 initialBot :: Bot
 initialBot = Bot origin (BotId <$> [2 .. 20])
-
-origin :: Coordinate
-origin = Coordinate 0 0 0
 
 newtype Energy =
   Energy Integer

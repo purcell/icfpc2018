@@ -9,12 +9,7 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Data.Word
-
-data Coordinate = Coordinate
-  { cx :: !Int
-  , cy :: !Int
-  , cz :: !Int
-  } deriving (Eq, Ord, Show)
+import Geometry (Coordinate(..))
 
 data Matrix = Matrix
   { matrixResolution :: !Int

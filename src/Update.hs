@@ -3,21 +3,13 @@
 
 module Update where
 
-import Cmd (Cmd(..), LLD(..), NCD(..), SLD(..), VectorDiff(..))
+import Cmd (Cmd(..))
 import Control.Applicative
 import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import Model
-  ( Coordinate(..)
-  , Matrix(..)
-  , fillVoxel
-  , isFilled
-  , isGrounded
-  , isValidCoord
-  )
+import Geometry
+import Model (fillVoxel, isFilled, isGrounded, isValidCoord)
 import State (BotId, Energy(..), Harmonics(..), State(..), coord)
-import qualified State
 
 performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
 performCommand (botId, cmd) state@State {..} =
@@ -29,7 +21,7 @@ performCommand (botId, cmd) state@State {..} =
       case cmd of
         Halt -> do
           guard $ length bots == 1
-          guard $ coord bot == State.origin
+          guard $ coord bot == origin
           guard $ matrix == target
           guard $ harmonics == Low
           pure $ state {bots = Map.empty}
@@ -38,6 +30,7 @@ performCommand (botId, cmd) state@State {..} =
         SMove (LLD vector) -> do
           guard $ isValidCoord matrix newBotCoord
           guard $ regionIsClear regionPassedThrough
+          guard $ differsOnSingleAxis vector
           pure
             state
               { bots = Map.insert botId movedBot bots
@@ -45,7 +38,8 @@ performCommand (botId, cmd) state@State {..} =
               }
           where movedBot = bot {coord = newBotCoord}
                 newBotCoord = translateBy vector $ coord bot
-                regionPassedThrough = region (coord bot) newBotCoord
+                regionPassedThrough =
+                  linearRegion vector (coord bot) newBotCoord
                 energyToMoveBot = manhattanDistance vector * 2
         LMove (SLD vector1) (SLD vector2) -> do
           guard $ isValidCoord matrix coord''
@@ -57,9 +51,10 @@ performCommand (botId, cmd) state@State {..} =
               }
           where movedBot = bot {coord = coord''}
                 coord' = translateBy vector1 $ coord bot
-                coord'' = translateBy vector2 $ coord'
+                coord'' = translateBy vector2 coord'
                 regionPassedThrough =
-                  region (coord bot) coord' ++ region coord' coord''
+                  linearRegion vector1 (coord bot) coord' ++
+                  linearRegion vector2 coord' coord''
                 energyToMoveBot =
                   2 *
                   (manhattanDistance vector1 + 2 + manhattanDistance vector2)
@@ -76,27 +71,6 @@ performCommand (botId, cmd) state@State {..} =
                   if isFilled matrix coordToFill
                     then (matrix, 6)
                     else (fillVoxel matrix coordToFill, 12)
-
-region :: Coordinate -> Coordinate -> [Coordinate]
-region c1 c2 =
-  [ Coordinate x y z
-  | x <- [(cx c1) .. (cx c2)]
-  , y <- [(cy c1) .. (cy c2)]
-  , z <- [(cz c1) .. (cz c2)]
-  ]
-
-translateBy :: VectorDiff -> Coordinate -> Coordinate
-translateBy VectorDiff {..} Coordinate {..} =
-  Coordinate {cx = cx + dx, cy = cy + dy, cz = cz + dz}
-
-manhattanDistance :: VectorDiff -> Int
-manhattanDistance VectorDiff {..} = abs dx + abs dy + abs dz
-
-diffCoords :: Coordinate -> Coordinate -> VectorDiff
-diffCoords c1 c2 = VectorDiff (cx c2 - cx c1) (cy c2 - cy c1) (cz c2 - cz c1)
-
-chessboardLength :: VectorDiff -> Int
-chessboardLength VectorDiff {..} = maximum [abs dx, abs dy, abs dz]
 
 flipHarmonics :: Harmonics -> Harmonics
 flipHarmonics High = Low

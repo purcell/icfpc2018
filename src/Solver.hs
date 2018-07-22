@@ -5,8 +5,18 @@ module Solver where
 import Astar
 import Cmd
 import qualified Data.Map as Map
-import Data.Maybe (listToMaybe)
+import Data.Maybe (catMaybes, listToMaybe)
 import qualified Data.Set as Set
+import Geometry
+  ( Coordinate(..)
+  , NCD(..)
+  , VectorDiff(..)
+  , chessboardLength
+  , diffCoords
+  , manhattanDistance
+  , mkLLD
+  , origin
+  )
 import Model
 import State
 import Trace (unsafeDumpTrace)
@@ -55,9 +65,11 @@ commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
     deltas = [-15 .. (-1)] ++ [1 .. 15]
     fills = Fill <$> nearCoordinateDiffs
     smoves =
-      SMove . LLD <$>
-      ([VectorDiff d 0 0 | d <- deltas] ++
-       [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas])
+      SMove <$>
+      catMaybes
+        (mkLLD <$>
+         [VectorDiff d 0 0 | d <- deltas] ++
+         [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas])
     lmoves = []
 
 nearCoordinateDiffs :: [NCD]

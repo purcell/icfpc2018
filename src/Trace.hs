@@ -14,6 +14,7 @@ import Data.Bits
 import qualified Data.ByteString.Lazy as BSL
 import Data.Foldable (traverse_)
 import Data.Word
+import Geometry (LLD(..), NCD(..), SLD(..), VectorDiff(..))
 import System.IO.Unsafe (unsafePerformIO)
 import System.Random (randomIO)
 

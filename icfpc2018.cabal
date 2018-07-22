@@ -33,6 +33,7 @@ library
                 , Trace
                 , Astar
                 , Solver
+                , Geometry
   other-modules:
   hs-source-dirs:
                  src
