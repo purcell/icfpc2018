@@ -6,5 +6,5 @@ mkdir -p solutionsL
 for f in data/problemsL/*.mdl; do
     trace_filename=$(basename "$f"|sed s/_tgt.mdl/.nbt/)
     echo "Solving $f"
-    stack exec -- icfpc2018 "$f" "solutionsL/$trace_filename"
+    stack exec -- time icfpc2018 "$f" "solutionsL/$trace_filename"
 done
