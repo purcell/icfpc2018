@@ -37,6 +37,22 @@ newtype NCD =
   NCD VectorDiff
   deriving (Show, Eq, Ord)
 
+nearCoordinateDiffs :: [NCD]
+nearCoordinateDiffs =
+  NCD <$>
+  [ diff
+  | dx' <- [-1 .. 1]
+  , dy' <- [-1 .. 1]
+  , dz' <- [-1 .. 1]
+  , let diff = VectorDiff dx' dy' dz'
+  , isNCD diff
+  ]
+    -- TODO: should be a smart constructor somewhere
+  where
+    isNCD d = mlen > 0 && mlen <= 2 && chessboardLength d == 1
+      where
+        mlen = manhattanDistance d
+
 manhattanDistance :: VectorDiff -> Int
 manhattanDistance VectorDiff {..} = abs dx + abs dy + abs dz
 

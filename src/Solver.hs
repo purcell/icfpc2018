@@ -9,12 +9,12 @@ import Data.Maybe (catMaybes, listToMaybe)
 import qualified Data.Set as Set
 import Geometry
   ( Coordinate(..)
-  , NCD(..)
+  , SLD(..)
   , VectorDiff(..)
   , chessboardLength
   , diffCoords
-  , manhattanDistance
   , mkLLD
+  , nearCoordinateDiffs
   , origin
   )
 import Model
@@ -62,31 +62,18 @@ possibleCommands s =
 commandsForBot :: State -> Bot -> [Cmd]
 commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
   where
-    deltas = [-15 .. (-1)] ++ [1 .. 15]
     fills = Fill <$> nearCoordinateDiffs
-    smoves =
-      SMove <$>
-      catMaybes
-        (mkLLD <$>
-         [VectorDiff d 0 0 | d <- deltas] ++
-         [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas])
-    lmoves = []
-
-nearCoordinateDiffs :: [NCD]
-nearCoordinateDiffs =
-  NCD <$>
-  [ diff
-  | dx' <- [-1 .. 1]
-  , dy' <- [-1 .. 1]
-  , dz' <- [-1 .. 1]
-  , let diff = VectorDiff dx' dy' dz'
-  , isNCD diff
-  ]
-    -- TODO: should be a smart constructor somewhere
-  where
-    isNCD d = mlen > 0 && mlen <= 2 && chessboardLength d == 1
+    linearVecDiffs l =
+      [VectorDiff d 0 0 | d <- deltas] ++
+      [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas]
       where
-        mlen = manhattanDistance d
+        deltas = [-l .. (-1)] ++ [1 .. l]
+    smoves = SMove <$> catMaybes (mkLLD <$> linearVecDiffs 15)
+    lmoves =
+      [ LMove (SLD sld1) (SLD sld2)
+      | sld1 <- linearVecDiffs 5
+      , sld2 <- linearVecDiffs 5
+      ]
 
 distanceFromCompletion :: State -> Int
 distanceFromCompletion s =
