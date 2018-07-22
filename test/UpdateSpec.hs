@@ -21,16 +21,18 @@ main :: IO ()
 main = hspec spec
 
 initialState :: State
-initialState =
-  State.initialState
-    Matrix
-      { matrixResolution = 50
-      , matrixFilledVoxels =
-          Set.fromList
-            [ Coordinate {cx = 1, cy = 0, cz = 0}
-            , Coordinate {cx = 0, cy = 5, cz = 0}
-            ]
-      }
+initialState = State.initialState initialMatrix
+
+initialMatrix :: Matrix
+initialMatrix =
+  Matrix
+    { matrixResolution = 50
+    , matrixFilledVoxels =
+        Set.fromList
+          [ Coordinate {cx = 1, cy = 0, cz = 0}
+          , Coordinate {cx = 0, cy = 5, cz = 0}
+          ]
+    }
 
 spec :: Spec
 spec =
@@ -54,6 +56,14 @@ spec =
         bots <$>
           maybeState `shouldBe`
           (Just $ Map.fromList [(initialBotId, expectedBot)])
+      it "doesn't move a bot through a filled voxel" $ do
+        let botStartingCoord = Coordinate {cx = 2, cy = 0, cz = 0}
+            illegalLLD = LLD VectorDiff {dx = -2, dy = 0, dz = 0}
+            -- ^ {cx = 1, cy = 0, cz = 0} is a filled coordinate
+            bots' = Map.fromList [(initialBotId, Bot botStartingCoord [])]
+            initialState' = initialState {bots = bots', matrix = initialMatrix}
+        performCommand (initialBotId, Cmd.SMove illegalLLD) initialState' `shouldBe`
+          Nothing
       it "adjusts the energy to reflect that a move was made" $
         -- energy for an SMove = energy + 2 * mlen(lld)
         -- mlen(d) is defined as |dx| + |dy| + |dz| (the sum of the absolute values of dx, dy, and dz)
