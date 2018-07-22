@@ -13,9 +13,11 @@ import Geometry
   , VectorDiff(..)
   , chessboardLength
   , diffCoords
+  , linearVectorDiffs
   , mkLLD
   , nearCoordinateDiffs
   , origin
+  , surroundingCoords
   )
 import Model
 import State
@@ -63,16 +65,11 @@ commandsForBot :: State -> Bot -> [Cmd]
 commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
   where
     fills = Fill <$> nearCoordinateDiffs
-    linearVecDiffs l =
-      [VectorDiff d 0 0 | d <- deltas] ++
-      [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas]
-      where
-        deltas = [-l .. (-1)] ++ [1 .. l]
-    smoves = SMove <$> catMaybes (mkLLD <$> linearVecDiffs 15)
+    smoves = SMove <$> catMaybes (mkLLD <$> linearVectorDiffs 15)
     lmoves =
       [ LMove (SLD sld1) (SLD sld2)
-      | sld1 <- linearVecDiffs 5
-      , sld2 <- linearVecDiffs 5
+      | sld1 <- linearVectorDiffs 5
+      , sld2 <- linearVectorDiffs 5
       ]
 
 distanceFromCompletion :: State -> Int

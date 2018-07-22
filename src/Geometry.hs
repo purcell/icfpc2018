@@ -37,16 +37,28 @@ newtype NCD =
   NCD VectorDiff
   deriving (Show, Eq, Ord)
 
-nearCoordinateDiffs :: [NCD]
-nearCoordinateDiffs =
-  NCD <$>
+linearVectorDiffs :: Int -> [VectorDiff]
+linearVectorDiffs l =
+  [VectorDiff d 0 0 | d <- deltas] ++
+  [VectorDiff 0 d 0 | d <- deltas] ++ [VectorDiff 0 0 d | d <- deltas]
+  where
+    deltas = [-l .. (-1)] ++ [1 .. l]
+
+surroundingCoords :: Coordinate -> [Coordinate]
+surroundingCoords c = [translateBy v c | v <- surroundingVectors]
+
+surroundingVectors :: [VectorDiff]
+surroundingVectors =
   [ diff
   | dx' <- [-1 .. 1]
   , dy' <- [-1 .. 1]
   , dz' <- [-1 .. 1]
   , let diff = VectorDiff dx' dy' dz'
-  , isNCD diff
+  , (dx', dy', dz') /= (0, 0, 0)
   ]
+
+nearCoordinateDiffs :: [NCD]
+nearCoordinateDiffs = NCD <$> filter isNCD surroundingVectors
     -- TODO: should be a smart constructor somewhere
   where
     isNCD d = mlen > 0 && mlen <= 2 && chessboardLength d == 1
