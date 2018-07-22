@@ -28,10 +28,11 @@ solve :: Matrix -> Maybe (State, Int)
 solve m =
   listToMaybe $
   filter (elem Halt . trace . fst) $
-  astarOn stateFingerprint (traceSome . nexts) (initialState m)
+  astarOn stateFingerprint (traceSome . nexts m) (initialState m)
 
-stateFingerprint :: State -> (Map.Map BotId Bot, Harmonics, Matrix)
-stateFingerprint State {..} = (bots, harmonics, matrix)
+stateFingerprint :: State -> (Set.Set Coordinate, Harmonics, Matrix)
+stateFingerprint State {..} =
+  ((Set.fromList (coord <$> Map.elems bots)), harmonics, matrix)
 
 traceSome :: [(State, Int, Int)] -> [(State, Int, Int)]
 traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
@@ -43,9 +44,9 @@ traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
       --   then unsafeDumpTrace (trace state)
       --   else ()
 
-nexts :: State -> [(State, Int, Int)]
-nexts state =
-  [ (nextState, cost, distanceFromCompletion nextState)
+nexts :: Matrix -> State -> [(State, Int, Int)]
+nexts m state =
+  [ (nextState, cost, distanceFromCompletion (voxelConnectedness m) nextState)
   | nextState <- movesFromState state
   , let cost = fromIntegral (energy nextState - energy state)
   ]
@@ -72,8 +73,16 @@ commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
       , sld2 <- linearVectorDiffs 5
       ]
 
-distanceFromCompletion :: State -> Int
-distanceFromCompletion s =
+voxelConnectedness :: Matrix -> Coordinate -> Int
+voxelConnectedness m coord = Map.findWithDefault 0 coord connectedness
+  where
+    connectedness =
+      Map.fromList
+        [(c, numToBeFilledAround c) | c <- Set.elems (matrixFilledVoxels m)]
+    numToBeFilledAround c = length (filter (isFilled m) (surroundingCoords c))
+
+distanceFromCompletion :: (Coordinate -> Int) -> State -> Int
+distanceFromCompletion connectedness s =
   unfilledScore + remainingBots + harmonicSettingDistance +
   distancesFromVoxelsToBeFilled +
   distanceFromOriginOnceDone
@@ -84,7 +93,8 @@ distanceFromCompletion s =
            case harmonics s of
              Low -> cy c
              _ -> 0) *
-        100
+        100 *
+        connectedness c
         | c <- Set.toList unfilledVoxels
         ]
     unfilledVoxels =
