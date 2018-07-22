@@ -8,13 +8,21 @@ import Control.Applicative
 import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
 import Geometry
-import Model (fillVoxel, isFilled, isGrounded, isValidCoord)
+import Model (Matrix(..), fillVoxel, isFilled, isGrounded, isValidCoord)
 import State (BotId, Energy(..), Harmonics(..), State(..), coord)
 
 performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
 performCommand (botId, cmd) state@State {..} =
-  (\s -> s {trace = trace ++ [cmd]}) <$> newState
+  (\s -> s {trace = trace ++ [cmd], energy = State.energy s + timestepCost}) <$>
+  newState
   where
+    timestepCost =
+      Energy (20 * fromIntegral (length bots)) +
+      Energy
+        ((fromIntegral (matrixResolution matrix) ^ (3 :: Integer)) *
+         case harmonics of
+           High -> 30
+           Low -> 3)
     bot = bots Map.! botId
     regionIsClear = not . any (isFilled matrix)
     newState =
