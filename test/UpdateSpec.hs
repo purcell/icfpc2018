@@ -64,6 +64,10 @@ spec =
             initialState' = initialState {bots = bots', matrix = initialMatrix}
         performCommand (initialBotId, Cmd.SMove illegalLLD) initialState' `shouldBe`
           Nothing
+      it "doesn't move a bot out of the drawable space" $ do
+        let illegalLLD = LLD VectorDiff {dx = 0, dy = -1, dz = 0}
+        performCommand (initialBotId, Cmd.SMove illegalLLD) initialState `shouldBe`
+          Nothing
       it "adjusts the energy to reflect that a move was made" $
         -- energy for an SMove = energy + 2 * mlen(lld)
         -- mlen(d) is defined as |dx| + |dy| + |dz| (the sum of the absolute values of dx, dy, and dz)
