@@ -80,7 +80,7 @@ getMatrix = do
         S.fromList
           [ c
           | x <- [1 .. res - 2]
-          , y <- [1 .. res - 2]
+          , y <- [0 .. res - 2]
           , z <- [1 .. res - 2]
           , let c = Coordinate x y z
           , voxelFilledAt bytes res c
