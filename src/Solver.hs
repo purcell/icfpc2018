@@ -25,10 +25,22 @@ import Trace (unsafeDumpTrace)
 import Update
 
 solve :: Matrix -> Maybe (State, Int)
-solve m =
+solve m = solveWith (defaultStrategy m) m
+
+------------------------------------------------------------------------------
+-- Search plumbing
+------------------------------------------------------------------------------
+data Strategy = Strategy
+  { heuristic :: State -> Int
+  , makeCommands :: State -> [(BotId, Cmd)]
+  , keepState :: State -> Bool
+  }
+
+solveWith :: Strategy -> Matrix -> Maybe (State, Int)
+solveWith strategy m =
   listToMaybe $
   filter (elem Halt . trace . fst) $
-  astarOn stateFingerprint (traceSome . nexts m) (initialState m)
+  astarOn stateFingerprint (traceSome . nexts strategy) (initialState m)
 
 stateFingerprint :: State -> (Set.Set Coordinate, Harmonics, Matrix)
 stateFingerprint State {..} =
@@ -44,34 +56,46 @@ traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
       --   then unsafeDumpTrace (trace state)
       --   else ()
 
-nexts :: Matrix -> State -> [(State, Int, Int)]
-nexts m state =
-  [ (nextState, cost, distanceFromCompletion (voxelConnectedness m) nextState)
-  | nextState <- movesFromState state
+nexts :: Strategy -> State -> [(State, Int, Int)]
+nexts strategy state =
+  [ (nextState, cost, heuristic strategy nextState)
+  | nextState <- movesFromState strategy state
   , let cost = fromIntegral (energy nextState - energy state)
   ]
 
-movesFromState :: State -> [State]
-movesFromState s =
-  [s' | botCmd <- possibleCommands s, Just s' <- [performCommand botCmd s]]
+movesFromState :: Strategy -> State -> [State]
+movesFromState strategy s =
+  [s' | botCmd <- makeCommands strategy s, Just s' <- [performCommand botCmd s]]
 
-possibleCommands :: State -> [(BotId, Cmd)]
-possibleCommands s =
-  [ (botId, cmd)
-  | (botId, bot) <- Map.toList (bots s)
-  , cmd <- commandsForBot s bot
-  ]
-
-commandsForBot :: State -> Bot -> [Cmd]
-commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
+------------------------------------------------------------------------------
+-- Our specific strategy
+------------------------------------------------------------------------------
+defaultStrategy :: Matrix -> Strategy
+defaultStrategy m =
+  Strategy
+    { heuristic = distanceFromCompletion (voxelConnectedness m)
+    , makeCommands = possibleCommands
+    , keepState = const True
+    }
   where
-    fills = Fill <$> nearCoordinateDiffs
-    smoves = SMove <$> catMaybes (mkLLD <$> linearVectorDiffs 15)
-    lmoves =
-      [ LMove (SLD sld1) (SLD sld2)
-      | sld1 <- linearVectorDiffs 5
-      , sld2 <- linearVectorDiffs 5
+    possibleCommands s =
+      [ (botId, cmd)
+      | (botId, bot) <- Map.toList (bots s)
+      , cmd <- commandsForBot s bot
       ]
+    commandsForBot _state _bot = fills ++ smoves ++ lmoves ++ [Halt]
+      where
+        fills = Fill <$> nearCoordinateDiffs
+
+smoves :: [Cmd]
+smoves = SMove <$> catMaybes (mkLLD <$> linearVectorDiffs 15)
+
+lmoves :: [Cmd]
+lmoves =
+  [ LMove (SLD sld1) (SLD sld2)
+  | sld1 <- linearVectorDiffs 5
+  , sld2 <- linearVectorDiffs 5
+  ]
 
 voxelConnectedness :: Matrix -> Coordinate -> Int
 voxelConnectedness m coord = Map.findWithDefault 0 coord connectedness
