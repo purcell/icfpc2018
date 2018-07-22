@@ -42,6 +42,7 @@ performCommand (botId, cmd) state@State {..} =
                   linearRegion vector (coord bot) newBotCoord
                 energyToMoveBot = manhattanDistance vector * 2
         LMove (SLD vector1) (SLD vector2) -> do
+          guard $ isValidCoord matrix coord'
           guard $ isValidCoord matrix coord''
           guard $ regionIsClear regionPassedThrough
           pure
