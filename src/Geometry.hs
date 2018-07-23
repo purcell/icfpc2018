@@ -59,7 +59,6 @@ surroundingVectors =
 
 nearCoordinateDiffs :: [NCD]
 nearCoordinateDiffs = NCD <$> filter isNCD surroundingVectors
-    -- TODO: should be a smart constructor somewhere
   where
     isNCD d = mlen > 0 && mlen <= 2 && chessboardLength d == 1
       where
