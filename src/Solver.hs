@@ -48,7 +48,7 @@ solveWith strategy m =
 
 stateFingerprint :: State -> (Set.Set Coordinate, Harmonics, Matrix)
 stateFingerprint State {..} =
-  ((Set.fromList (coord <$> Map.elems bots)), harmonics, matrix)
+  (Set.fromList (coord <$> Map.elems bots), harmonics, matrix)
 
 traceSome :: [(State, Int, Int)] -> [(State, Int, Int)]
 traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
