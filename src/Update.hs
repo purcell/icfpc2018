@@ -35,7 +35,9 @@ performCommand (botId, cmd) state@State {..} =
           pure $ state {bots = Map.empty}
         Wait -> pure state
         FlipHarmonics -> pure state {harmonics = flipHarmonics harmonics}
-        SMove (LLD vector) -> do
+        SMove (LLD vector)
+          -- TODO: check <= 15
+         -> do
           guard $ isValidCoord matrix newBotCoord
           guard $ regionIsClear regionPassedThrough
           guard $ differsOnSingleAxis vector
@@ -49,7 +51,9 @@ performCommand (botId, cmd) state@State {..} =
                 regionPassedThrough =
                   linearRegion vector (coord bot) newBotCoord
                 energyToMoveBot = manhattanDistance vector * 2
-        LMove (SLD vector1) (SLD vector2) -> do
+        LMove (SLD vector1) (SLD vector2)
+          -- TODO: check <= 5
+         -> do
           guard $ isValidCoord matrix coord'
           guard $ isValidCoord matrix coord''
           guard $ regionIsClear regionPassedThrough
