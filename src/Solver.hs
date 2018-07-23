@@ -38,12 +38,13 @@ data Strategy = Strategy
   { heuristic :: State -> Int
   , makeCommands :: State -> [(BotId, Cmd)]
   , keepState :: State -> Bool
+  , isDone :: State -> Bool
   }
 
 solveWith :: Strategy -> Matrix -> Maybe (State, Int)
 solveWith strategy m =
   listToMaybe $
-  filter (elem Halt . trace . fst) $
+  filter (isDone strategy . fst) $
   astarOn stateFingerprint (traceSome . nexts strategy) (initialState m)
 
 stateFingerprint :: State -> (Set.Set Coordinate, Harmonics, Matrix)
@@ -80,6 +81,7 @@ defaultStrategy m =
     { heuristic = distanceFromCompletion (voxelConnectedness m)
     , makeCommands = possibleCommands
     , keepState = const True
+    , isDone = elem Halt . trace
     }
   where
     possibleCommands s =
