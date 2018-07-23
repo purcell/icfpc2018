@@ -87,7 +87,11 @@ solve m = (id &&& (fromIntegral . energy)) <$> (flipH (initialState m) >>= go)
 
 coordIndex :: Matrix -> Coordinate -> Int
 coordIndex m Coordinate {..} =
-  cy * (mx * mx) + cx * mx +
+  cy * (mx * mx) +
+  mx *
+  (if even cy
+     then cx
+     else mx - cx - 1) +
   if even cx
     then cz
     else mx - cz - 1
@@ -99,15 +103,16 @@ coordFromIndex m i = Coordinate x y z
   where
     mx = matrixResolution m
     y = i `div` (mx * mx)
-    x = (i - (y * mx * mx)) `div` mx
+    x =
+      if even y
+        then k
+        else mx - k - 1
+    k = (i - (y * mx * mx)) `div` mx
     z =
       if even x
         then j
         else mx - j - 1
     j = i - (y * mx * mx) - (x * mx)
-
-voxelsInFillOrder :: Matrix -> [Coordinate]
-voxelsInFillOrder m = sortOn (coordIndex m) $ Set.toList (matrixFilledVoxels m)
 
 moveToStrategy :: Coordinate -> Strategy
 moveToStrategy target =
