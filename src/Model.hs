@@ -16,6 +16,9 @@ data Matrix = Matrix
   , matrixFilledVoxels :: S.Set Coordinate
   } deriving (Eq, Ord, Show)
 
+matrixSize :: Matrix -> Int
+matrixSize = S.size . matrixFilledVoxels
+
 isFilled :: Matrix -> Coordinate -> Bool
 isFilled Matrix {..} c = c `S.member` matrixFilledVoxels
 

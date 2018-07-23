@@ -53,6 +53,22 @@ newtype BotId =
   BotId Int
   deriving (Eq, Ord, Show)
 
+unfilledVoxels :: State -> Set.Set Coordinate
+unfilledVoxels State {..} =
+  matrixFilledVoxels target `Set.difference` matrixFilledVoxels matrix
+
+matrixFilledCount :: Matrix -> Int
+matrixFilledCount = Set.size . matrixFilledVoxels
+
+unfilledCount :: State -> Int
+unfilledCount State {..} = matrixFilledCount target - matrixFilledCount matrix
+
+filledCount :: State -> Int
+filledCount State {..} = matrixFilledCount matrix
+
+allFilled :: State -> Bool
+allFilled s = unfilledCount s == 0
+
 checkForm :: State -> Either String State
 checkForm state@State {..} = Right state
   -- groundingMalformed harmonics matrix = Left "All voxels must be grounded if harmonics are low"

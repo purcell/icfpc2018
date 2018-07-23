@@ -9,7 +9,7 @@ import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
 import Geometry
 import Model (Matrix(..), fillVoxel, isFilled, isGrounded, isValidCoord)
-import State (BotId, Energy(..), Harmonics(..), State(..), coord)
+import State (BotId, Energy(..), Harmonics(..), State(..), allFilled, coord)
 
 performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
 performCommand (botId, cmd) state@State {..} =
@@ -30,7 +30,7 @@ performCommand (botId, cmd) state@State {..} =
         Halt -> do
           guard $ length bots == 1
           guard $ coord bot == origin
-          guard $ matrix == target
+          guard $ allFilled state
           guard $ harmonics == Low
           pure $ state {bots = Map.empty}
         Wait -> pure state
