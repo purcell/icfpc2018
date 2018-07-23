@@ -1,6 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Solver where
+module Solver
+  ( solve
+  , solveWith
+  , Strategy(..)
+  ) where
 
 import Astar
 import Cmd
