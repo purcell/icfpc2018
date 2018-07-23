@@ -37,13 +37,17 @@ import Trace (unsafeDumpTrace)
 import Update
 
 solve :: Matrix -> Maybe (State, Int)
-solve m = (id &&& (fromIntegral . energy)) <$> (flipH (initialState m) >>= go)
+solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
   where
-    flipH :: State -> Maybe State
-    flipH = performCommand (BotId 1, FlipHarmonics)
+    flipH :: Harmonics -> State -> Maybe State
+    flipH h s
+      | harmonics s == h = Just s
+    flipH _ s =
+      Debug.trace "Flipping harmonics" $
+      performCommand (BotId 1, FlipHarmonics) s
     go :: State -> Maybe State
     go s
-      | allFilled s = moveTo s origin >>= flipH >>= halt
+      | allFilled s = flipH Low s >>= (`moveTo` origin) >>= halt
     go s = (fillAround s <|> moveNext s) >>= go
     moveNext :: State -> Maybe State
     moveNext s =
@@ -62,7 +66,8 @@ solve m = (id &&& (fromIntegral . energy)) <$> (flipH (initialState m) >>= go)
       Debug.trace "Try to fill around current location" $
       if null fillCmds
         then empty
-        else listToMaybe fillCmds >>= \c -> performCommand c s
+        else listToMaybe fillCmds >>= \c ->
+               performCommand c s <|> (flipH High s >>= performCommand c)
       where
         fillCmds =
           [ (botId, Fill ncd)
