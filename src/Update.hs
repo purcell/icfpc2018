@@ -11,18 +11,23 @@ import Geometry
 import Model (Matrix(..), fillVoxel, isFilled, isGrounded, isValidCoord)
 import State (BotId, Energy(..), Harmonics(..), State(..), allFilled, coord)
 
+timestepCost :: State -> Integer
+timestepCost State {..} =
+  (20 * fromIntegral (length bots)) +
+  ((fromIntegral (matrixResolution matrix) ^ (3 :: Integer)) *
+   case harmonics of
+     High -> 30
+     Low -> 3)
+
 performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
 performCommand (botId, cmd) state@State {..} =
-  (\s -> s {trace = trace ++ [cmd], energy = State.energy s + timestepCost}) <$>
+  (\s ->
+     s
+       { trace = trace ++ [cmd]
+       , energy = State.energy s + Energy (timestepCost state)
+       }) <$>
   newState
   where
-    timestepCost =
-      Energy (20 * fromIntegral (length bots)) +
-      Energy
-        ((fromIntegral (matrixResolution matrix) ^ (3 :: Integer)) *
-         case harmonics of
-           High -> 30
-           Low -> 3)
     bot = bots Map.! botId
     regionIsClear = not . any (isFilled matrix)
     newState =
@@ -76,7 +81,7 @@ performCommand (botId, cmd) state@State {..} =
         FusionS _ncd -> undefined
         Fill (NCD vector) -> do
           guard $ isFilled target coordToFill
-          guard $ isGrounded updatedMatrix coordToFill
+          guard $ harmonics == High || isGrounded updatedMatrix coordToFill
           pure
             state {matrix = updatedMatrix, energy = energy + energyToFillVoxel}
           where coordToFill = translateBy vector $ coord bot
