@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Matrix
@@ -24,14 +25,14 @@ import Geometry (Coordinate(..))
 
 data Matrix = Matrix
   { resolution :: !Int
-  , filledVoxels :: IntSet
+  , filledVoxels :: !IntSet
   } deriving (Eq, Ord, Show)
 
 linearise :: Int -> Coordinate -> Int
-linearise r Coordinate {..} = cy * r * r + cx * r + cz
+linearise !r Coordinate {..} = cy * r * r + cx * r + cz
 
 unlinearise :: Int -> Int -> Coordinate
-unlinearise r i = Coordinate x y z
+unlinearise !r !i = Coordinate x y z
   where
     y = i `div` (r * r)
     (x, z) = (i - y * (r * r)) `divMod` r
