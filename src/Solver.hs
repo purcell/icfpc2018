@@ -1,11 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Solver
   ( solve
-  , Strategy(..)
   ) where
 
-import Astar
 import Cmd
 import Control.Applicative ((<|>), empty)
 import Control.Arrow ((&&&))
@@ -18,6 +17,7 @@ import qualified Data.Set as Set
 import qualified Debug.Trace as Debug
 import Geometry
   ( Coordinate(..)
+  , LLD(..)
   , NCD(..)
   , SLD(..)
   , VectorDiff(..)
@@ -39,56 +39,75 @@ import Update
 solve :: Matrix -> Maybe (State, Int)
 solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
   where
-    flipH :: Harmonics -> State -> Maybe State
-    flipH h s
-      | harmonics s == h = Just s
-    flipH _ s =
-      Debug.trace "Flipping harmonics" $
-      performCommand (BotId 1, FlipHarmonics) s
     go :: State -> Maybe State
-    go s
+    go !s
       | allFilled s = flipH Low s >>= (`moveTo` origin) >>= halt
-    go s = (fillAround s <|> moveNext s) >>= go
+    go !s = (fillAround s <|> moveNext s) >>= go
     moveNext :: State -> Maybe State
     moveNext s =
-      (Debug.trace "Looking for next position" $ bestPositionToFill s) >>=
-      moveTo s
-    moveTo :: State -> Coordinate -> Maybe State
-    moveTo s c
-      -- (if c == Coordinate 6 2 6
-      --    then unsafeDumpTrace (trace s)
-      --    else ()) `seq`
-     =
-      Debug.trace ("Find best move to " ++ show c) $
-      findBest (moveToStrategy c) s
-    fillAround :: State -> Maybe State
-    fillAround s =
-      Debug.trace "Try to fill around current location" $
-      if null fillCmds
-        then empty
-        else listToMaybe fillCmds >>= \c ->
-               performCommand c s <|> (flipH High s >>= performCommand c)
-      where
-        fillCmds =
-          [ (botId, Fill ncd)
-          | ncd@(NCD vec) <- nearCoordinateDiffs
-          , (botId, Bot {..}) <- Map.toList (bots s)
-          , let fillLoc = translateBy vec coord
-          , isFilled m fillLoc
-          , not (isFilled (matrix s) fillLoc)
-          , cy fillLoc < cy coord
-          ]
-    bestPositionToFill :: State -> Maybe Coordinate
-    bestPositionToFill s = (\c -> c {cy = cy c + 1}) <$> earliestUnfilled
-      where
-        earliestUnfilled =
-          if null unfilled
-            then Nothing
-            else Just $ minimumBy (comparing (coordIndex m)) unfilled
-        unfilled = Set.toList $ unfilledVoxels s
-    halt :: State -> Maybe State
-    halt s =
-      Debug.trace "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
+      Debug.trace "Looking for next position" $
+      bestPositionToFill (coordIndex m) s >>= moveTo s
+
+flipH :: Harmonics -> State -> Maybe State
+flipH h s
+  | harmonics s == h = Just s
+flipH _ s =
+  Debug.trace "Flipping harmonics" $ performCommand (BotId 1, FlipHarmonics) s
+
+moveTo :: State -> Coordinate -> Maybe State
+moveTo s !c = Debug.trace ("Find best move to " ++ show c) $ maybeMove s
+  where
+    botId = head (Map.keys (bots s))
+    botPos st = coord (bots st Map.! botId)
+    -- Shortest smove from c to a, with LLD satisfying f
+    bestSMove a f =
+      listToMaybe $
+      fst <$>
+      sortOn
+        snd
+        [ (move, manhattanDistance (diffCoords (translateBy vec a) c))
+        | move@(SMove (LLD vec)) <- smoves
+        , f vec
+        ]
+    moveThenCont s' move = performCommand (botId, move) s' >>= maybeMove
+    maybeMove s'
+      | botPos s' == c = pure s'
+      | cy (botPos s') < cy c =
+        bestSMove (botPos s') (\lld -> dy lld > 0) >>= moveThenCont s'
+      | cx (botPos s') /= cx c || cz (botPos s') /= cz c =
+        bestSMove (botPos s') (\lld -> dy lld == 0) >>= moveThenCont s'
+      | otherwise =
+        bestSMove (botPos s') (\lld -> dy lld /= 0) >>= moveThenCont s'
+
+fillAround :: State -> Maybe State
+fillAround s =
+  Debug.trace "Try to fill around current location" $
+  if null fillCmds
+    then empty
+    else listToMaybe fillCmds >>= \c ->
+           performCommand c s <|> (flipH High s >>= performCommand c)
+  where
+    fillCmds =
+      [ (botId, Fill ncd)
+      | ncd@(NCD vec) <- nearCoordinateDiffs
+      , (botId, Bot {..}) <- Map.toList (bots s)
+      , let fillLoc = translateBy vec coord
+      , isFilled (target s) fillLoc
+      , not (isFilled (matrix s) fillLoc)
+      , cy fillLoc < cy coord
+      ]
+
+bestPositionToFill :: (Coordinate -> Int) -> State -> Maybe Coordinate
+bestPositionToFill fillOrder s = (\c -> c {cy = cy c + 1}) <$> earliestUnfilled
+  where
+    earliestUnfilled =
+      if null unfilled
+        then Nothing
+        else Just $ minimumBy (comparing fillOrder) unfilled
+    unfilled = Set.toList $ unfilledVoxels s
+
+halt :: State -> Maybe State
+halt s = Debug.trace "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
 
 coordIndex :: Matrix -> Coordinate -> Int
 coordIndex m Coordinate {..} =
@@ -119,23 +138,6 @@ coordFromIndex m i = Coordinate x y z
         else mx - j - 1
     j = i - (y * mx * mx) - (x * mx)
 
-moveToStrategy :: Coordinate -> Strategy
-moveToStrategy target =
-  Strategy
-    { heuristic = leastBotDistanceCost
-    , makeCommands = moves
-    , isDone = (== 0) . leastBotDistance
-    }
-  where
-    leastBotDistanceCost s =
-      ceiling (fromIntegral (leastBotDistance s) / 15 :: Rational) *
-      fromIntegral (timestepCost s) +
-      leastBotDistance s * 2
-    leastBotDistance s =
-      minimum [distBetween target coord | Bot {..} <- Map.elems (bots s)]
-    moves s =
-      [(botId, move) | botId <- Map.keys (bots s), move <- lmoves ++ smoves]
-
 distBetween :: Coordinate -> Coordinate -> Int
 distBetween c c' = manhattanDistance (diffCoords c c')
 
@@ -148,43 +150,3 @@ lmoves =
   | sld1 <- linearVectorDiffs 5
   , sld2 <- linearVectorDiffs 5
   ]
-
-------------------------------------------------------------------------------
--- Search plumbing
-------------------------------------------------------------------------------
-data Strategy = Strategy
-  { heuristic :: State -> Int
-  , makeCommands :: State -> [(BotId, Cmd)]
-  , isDone :: State -> Bool
-  }
-
-findBest :: Strategy -> State -> Maybe State
-findBest strategy s =
-  fmap fst $
-  listToMaybe $
-  filter (isDone strategy . fst) $
-  astarOn stateFingerprint (traceSome . nexts strategy) s
-
-stateFingerprint :: State -> (Map.Map BotId Bot, Harmonics, Matrix)
-stateFingerprint State {..} = (bots, harmonics, matrix)
-
-traceSome :: [(State, Int, Int)] -> [(State, Int, Int)]
-traceSome things = [maybeTrace s `seq` t | t@(s, _, _) <- things]
-  where
-    anyFills s = not (null [True | (Fill _) <- trace s])
-    allFilled s = matrix s == target s
-    maybeTrace state = ()
-      -- if length (trace state) == 3
-      --   then unsafeDumpTrace (trace state)
-      --   else ()
-
-nexts :: Strategy -> State -> [(State, Int, Int)]
-nexts strategy state =
-  [ (nextState, cost, heuristic strategy nextState)
-  | nextState <- movesFromState strategy state
-  , let cost = fromIntegral (energy nextState)
-  ]
-
-movesFromState :: Strategy -> State -> [State]
-movesFromState strategy s =
-  [s' | botCmd <- makeCommands strategy s, Just s' <- [performCommand botCmd s]]

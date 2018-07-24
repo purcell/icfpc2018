@@ -1,5 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Trace
   ( toBinaryTrace
@@ -51,43 +51,35 @@ putCmd (Fission ncd (SeedAmount seedAmt)) = do
 putCmd (Fill ncd) = putWord8 (3 .|. shiftL (ncdBits ncd) 3)
 
 lldAxis :: LLD -> Word8
-lldAxis (LLD VectorDiff {dx})
+lldAxis (LLD VectorDiff {..})
   | dx /= 0 = 1
-lldAxis (LLD VectorDiff {dy})
   | dy /= 0 = 2
-lldAxis (LLD VectorDiff {dz})
   | dz /= 0 = 3
-lldAxis _ = error "Invalid LLD!"
+  | otherwise = error "Invalid LLD!"
 
 lldIncr :: LLD -> Word8
-lldIncr (LLD VectorDiff {dx})
+lldIncr (LLD VectorDiff {..})
   | dx /= 0 = fromIntegral $ dx + 15
-lldIncr (LLD VectorDiff {dy})
   | dy /= 0 = fromIntegral $ dy + 15
-lldIncr (LLD VectorDiff {dz})
   | dz /= 0 = fromIntegral $ dz + 15
-lldIncr _ = error "Invalid LLD!"
+  | otherwise = error "Invalid LLD!"
 
 sldAxis :: SLD -> Word8
-sldAxis (SLD VectorDiff {dx})
+sldAxis (SLD VectorDiff {..})
   | dx /= 0 = 1
-sldAxis (SLD VectorDiff {dy})
   | dy /= 0 = 2
-sldAxis (SLD VectorDiff {dz})
   | dz /= 0 = 3
-sldAxis _ = error "Invalid SLD!"
+  | otherwise = error "Invalid SLD!"
 
 sldIncr :: SLD -> Word8
-sldIncr (SLD VectorDiff {dx})
+sldIncr (SLD VectorDiff {..})
   | dx /= 0 = fromIntegral $ dx + 5
-sldIncr (SLD VectorDiff {dy})
   | dy /= 0 = fromIntegral $ dy + 5
-sldIncr (SLD VectorDiff {dz})
   | dz /= 0 = fromIntegral $ dz + 5
-sldIncr _ = error "Invalid SLD!"
+  | otherwise = error "Invalid SLD!"
 
 ncdBits :: NCD -> Word8
-ncdBits (NCD VectorDiff {dx, dy, dz}) =
+ncdBits (NCD VectorDiff {..}) =
   fromIntegral $ (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
 
 debugCmdBinary :: Cmd -> String

@@ -31,7 +31,6 @@ library
                 , State
                 , Update
                 , Trace
-                , Astar
                 , Solver
                 , Geometry
   other-modules:
