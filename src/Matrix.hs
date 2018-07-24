@@ -8,6 +8,7 @@ module Matrix
   , fillVoxel
   , isFilled
   , isGrounded
+  , touchesNeighbourOrGround
   , isValidCoord
   , coordRange
   , showSlice
@@ -74,6 +75,10 @@ isGrounded = go S.empty
       any
         (go (S.insert c seen) m)
         (filter (`S.notMember` seen) (nonDiagonalNeighbours m c))
+
+touchesNeighbourOrGround :: Matrix -> Coordinate -> Bool
+touchesNeighbourOrGround m c =
+  cy c == 0 || any (isFilled m) (nonDiagonalNeighbours m c)
 
 nonDiagonalNeighbours :: Matrix -> Coordinate -> [Coordinate]
 nonDiagonalNeighbours m Coordinate {..} =

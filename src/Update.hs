@@ -39,7 +39,9 @@ performCommand (botId, cmd) state@State {..} =
           guard $ harmonics == Low
           pure $ state {bots = Map.empty}
         Wait -> pure state
-        FlipHarmonics -> pure state {harmonics = flipHarmonics harmonics}
+        FlipHarmonics
+          -- TODO: assert all filled voxels are grounded if turning to Low
+         -> pure state {harmonics = flipHarmonics harmonics}
         SMove (LLD vector)
           -- TODO: check <= 15
          -> do
@@ -82,7 +84,8 @@ performCommand (botId, cmd) state@State {..} =
         Fill (NCD vector) -> do
           guard $ Matrix.isFilled target coordToFill
           guard $
-            harmonics == High || Matrix.isGrounded updatedMatrix coordToFill
+            harmonics == High ||
+            Matrix.touchesNeighbourOrGround updatedMatrix coordToFill
           pure
             state {matrix = updatedMatrix, energy = energy + energyToFillVoxel}
           where coordToFill = translateBy vector $ coord bot
