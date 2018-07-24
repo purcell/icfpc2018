@@ -54,7 +54,7 @@ executable icfpc2018
   other-modules:
   hs-source-dirs:
                  app
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -threaded -rtsopts "-with-rtsopts=-N -T" -O2
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -threaded -rtsopts "-with-rtsopts=-T" -O2
   build-depends:
                 base >=4.7 && <5
               , icfpc2018
