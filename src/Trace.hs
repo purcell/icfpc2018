@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -19,7 +20,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Random (randomIO)
 
 dumpTrace :: [Cmd] -> FilePath -> IO ()
-dumpTrace cmds traceFile = BSL.writeFile traceFile (toBinaryTrace cmds)
+dumpTrace !cmds traceFile = BSL.writeFile traceFile (toBinaryTrace cmds)
 
 unsafeDumpTrace :: [Cmd] -> ()
 unsafeDumpTrace cmds =

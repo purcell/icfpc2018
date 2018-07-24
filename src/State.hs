@@ -10,8 +10,8 @@ import qualified Matrix
 import Matrix (Matrix)
 
 data State = State
-  { energy :: Energy
-  , harmonics :: Harmonics
+  { energy :: !Energy
+  , harmonics :: !Harmonics
   , matrix :: Matrix
   , target :: Matrix
   , bots :: Map BotId Bot
@@ -45,7 +45,7 @@ data Harmonics
   deriving (Show, Eq, Ord)
 
 data Bot = Bot
-  { coord :: Coordinate
+  { coord :: !Coordinate
   , seeds :: [BotId]
   } deriving (Show, Eq, Ord)
 
