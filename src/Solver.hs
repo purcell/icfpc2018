@@ -46,7 +46,7 @@ solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
     moveNext :: State -> Maybe State
     moveNext s =
       Debug.trace "Looking for next position" $
-      bestPositionToFill (coordIndex m) s >>= moveTo s
+      nextPositionToFill (coordIndex m) s >>= moveTo s . justAbove
 
 flipH :: Harmonics -> State -> Maybe State
 flipH h s
@@ -54,6 +54,7 @@ flipH h s
 flipH _ s =
   Debug.trace "Flipping harmonics" $ performCommand (BotId 1, FlipHarmonics) s
 
+-- Assumes we're above all filled pixels
 moveTo :: State -> Coordinate -> Maybe State
 moveTo s !c = Debug.trace ("Find best move to " ++ show c) $ maybeMove s
   where
@@ -97,8 +98,11 @@ fillAround s =
       , cy fillLoc < cy coord
       ]
 
-bestPositionToFill :: (Coordinate -> Int) -> State -> Maybe Coordinate
-bestPositionToFill fillOrder s = (\c -> c {cy = cy c + 1}) <$> earliestUnfilled
+justAbove :: Coordinate -> Coordinate
+justAbove c = c {cy = cy c + 1}
+
+nextPositionToFill :: (Coordinate -> Int) -> State -> Maybe Coordinate
+nextPositionToFill fillOrder s = earliestUnfilled
   where
     earliestUnfilled =
       if null unfilled
