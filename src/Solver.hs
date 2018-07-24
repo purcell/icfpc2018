@@ -13,7 +13,7 @@ import qualified Data.Map as Map
 import Data.Maybe (catMaybes, listToMaybe)
 import Data.Ord (comparing)
 import qualified Data.Set as Set
-import qualified Debug.Trace as Debug
+import qualified Debug.Trace
 import Geometry
   ( Coordinate(..)
   , LLD(..)
@@ -34,6 +34,9 @@ import State
 import Trace (unsafeDumpTrace)
 import Update
 
+debug :: String -> a -> a
+debug = const id -- or Debug.Trace.trace
+
 solve :: Matrix -> Maybe (State, Int)
 solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
   where
@@ -43,18 +46,18 @@ solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
     go !s = (fillAround s <|> moveNext s) >>= go
     moveNext :: State -> Maybe State
     moveNext s =
-      Debug.trace "Looking for next position" $
+      debug "Looking for next position" $
       nextPositionToFill (coordIndex m) s >>= moveTo s . justAbove
 
 flipH :: Harmonics -> State -> Maybe State
 flipH h s
   | harmonics s == h = Just s
 flipH _ s =
-  Debug.trace "Flipping harmonics" $ performCommand (BotId 1, FlipHarmonics) s
+  debug "Flipping harmonics" $ performCommand (BotId 1, FlipHarmonics) s
 
 -- Assumes we're above all filled pixels
 moveTo :: State -> Coordinate -> Maybe State
-moveTo s !c = Debug.trace ("Find best move to " ++ show c) $ maybeMove s
+moveTo s !c = debug ("Find best move to " ++ show c) $ maybeMove s
   where
     botId = head (Map.keys (bots s))
     botPos st = coord (bots st Map.! botId)
@@ -80,7 +83,7 @@ moveTo s !c = Debug.trace ("Find best move to " ++ show c) $ maybeMove s
 
 fillAround :: State -> Maybe State
 fillAround s =
-  Debug.trace "Try to fill around current location" $
+  debug "Try to fill around current location" $
   if null fillCmds
     then empty
     else listToMaybe fillCmds >>= \c ->
@@ -112,7 +115,7 @@ nextPositionToFill fillOrder s = earliestUnfilled
     unfilled = Matrix.toList $ target s `Matrix.difference` matrix s
 
 halt :: State -> Maybe State
-halt s = Debug.trace "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
+halt s = debug "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
 
 coordIndex :: Matrix -> Coordinate -> Int
 coordIndex m Coordinate {..} =
