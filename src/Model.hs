@@ -10,61 +10,7 @@ import qualified Data.Set as S
 import qualified Data.Vector as V
 import Data.Word
 import Geometry (Coordinate(..))
-
-data Matrix = Matrix
-  { matrixResolution :: !Int
-  , matrixFilledVoxels :: S.Set Coordinate
-  } deriving (Eq, Ord, Show)
-
-matrixSize :: Matrix -> Int
-matrixSize = S.size . matrixFilledVoxels
-
-isFilled :: Matrix -> Coordinate -> Bool
-isFilled Matrix {..} c = c `S.member` matrixFilledVoxels
-
-fillVoxel :: Matrix -> Coordinate -> Matrix
-fillVoxel m@Matrix {..} c =
-  m {matrixFilledVoxels = S.insert c matrixFilledVoxels}
-
-isGrounded :: Matrix -> Coordinate -> Bool
-isGrounded = go S.empty
-  where
-    go :: S.Set Coordinate -> Matrix -> Coordinate -> Bool
-    go _ m c
-      | not (isFilled m c) = False
-    go _ _ c
-      | cy c == 0 = True
-    go seen m c =
-      any
-        (go (S.insert c seen) m)
-        (filter (`S.notMember` seen) (nonDiagonalNeighbours m c))
-
-nonDiagonalNeighbours :: Matrix -> Coordinate -> [Coordinate]
-nonDiagonalNeighbours m Coordinate {..} =
-  filter
-    (isValidCoord m)
-    [ Coordinate (cx + dx) (cy + dy) (cz + dz)
-    | (dx, dy, dz) <-
-        [(-1, 0, 0), (0, -1, 0), (0, 0, -1), (1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    ]
-
-isValidCoord :: Matrix -> Coordinate -> Bool
-isValidCoord m Coordinate {..} = inRange cx && inRange cy && inRange cz
-  where
-    inRange i = i >= 0 && i < matrixResolution m
-
-coordRange :: Matrix -> [Int]
-coordRange Matrix {..} = [0 .. matrixResolution - 1]
-
-showSlice :: Matrix -> Int -> String
-showSlice m y = unlines (row <$> reverse (coordRange m))
-  where
-    row z =
-      [ if isFilled m (Coordinate x y z)
-        then 'X'
-        else '.'
-      | x <- coordRange m
-      ]
+import Matrix
 
 modelFromFile :: FilePath -> IO Matrix
 modelFromFile path = runGet getMatrix <$> BSL.readFile path
@@ -83,7 +29,7 @@ getMatrix = do
           , let c = Coordinate x y z
           , voxelFilledAt bytes res c
           ]
-  return (Matrix res filledCoords)
+  return (makeMatrix res filledCoords)
 
 voxelFilledAt :: V.Vector Word8 -> Int -> Coordinate -> Bool
 voxelFilledAt bytes res Coordinate {..} = testBit (bytes V.! byteIdx) bitIdx

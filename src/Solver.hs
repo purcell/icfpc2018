@@ -8,7 +8,6 @@ module Solver
 import Cmd
 import Control.Applicative ((<|>), empty)
 import Control.Arrow ((&&&))
-import Control.Monad (foldM)
 import Data.List (minimumBy, sortOn)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, listToMaybe)
@@ -21,17 +20,16 @@ import Geometry
   , NCD(..)
   , SLD(..)
   , VectorDiff(..)
-  , chessboardLength
   , diffCoords
   , linearVectorDiffs
   , manhattanDistance
   , mkLLD
   , nearCoordinateDiffs
   , origin
-  , surroundingCoords
   , translateBy
   )
-import Model
+import qualified Matrix
+import Matrix (Matrix)
 import State
 import Trace (unsafeDumpTrace)
 import Update
@@ -93,8 +91,8 @@ fillAround s =
       | ncd@(NCD vec) <- nearCoordinateDiffs
       , (botId, Bot {..}) <- Map.toList (bots s)
       , let fillLoc = translateBy vec coord
-      , isFilled (target s) fillLoc
-      , not (isFilled (matrix s) fillLoc)
+      , Matrix.isFilled (target s) fillLoc
+      , not (Matrix.isFilled (matrix s) fillLoc)
       , cy fillLoc < cy coord
       ]
 
@@ -108,7 +106,7 @@ nextPositionToFill fillOrder s = earliestUnfilled
       if null unfilled
         then Nothing
         else Just $ minimumBy (comparing fillOrder) unfilled
-    unfilled = Set.toList $ unfilledVoxels s
+    unfilled = Matrix.toList $ target s `Matrix.difference` matrix s
 
 halt :: State -> Maybe State
 halt s = Debug.trace "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
@@ -124,12 +122,12 @@ coordIndex m Coordinate {..} =
     then cz
     else mx - cz - 1
   where
-    mx = matrixResolution m
+    mx = Matrix.resolution m
 
 coordFromIndex :: Matrix -> Int -> Coordinate
 coordFromIndex m i = Coordinate x y z
   where
-    mx = matrixResolution m
+    mx = Matrix.resolution m
     y = i `div` (mx * mx)
     x =
       if even y

@@ -5,9 +5,9 @@ module State where
 
 import Cmd (Cmd)
 import Data.Map.Strict as Map
-import qualified Data.Set as Set
 import Geometry (Coordinate(..), origin)
-import Model (Matrix(..))
+import qualified Matrix
+import Matrix (Matrix)
 
 data State = State
   { energy :: Energy
@@ -23,7 +23,7 @@ initialState target =
   State
     { energy = 0
     , harmonics = Low
-    , matrix = target {matrixFilledVoxels = Set.empty}
+    , matrix = Matrix.emptyCopy target
     , target = target
     , bots = Map.fromList [(initialBotId, initialBot)]
     , trace = []
@@ -53,18 +53,11 @@ newtype BotId =
   BotId Int
   deriving (Eq, Ord, Show)
 
-unfilledVoxels :: State -> Set.Set Coordinate
-unfilledVoxels State {..} =
-  matrixFilledVoxels target `Set.difference` matrixFilledVoxels matrix
-
-matrixFilledCount :: Matrix -> Int
-matrixFilledCount = Set.size . matrixFilledVoxels
-
 unfilledCount :: State -> Int
-unfilledCount State {..} = matrixFilledCount target - matrixFilledCount matrix
+unfilledCount State {..} = Matrix.filledCount target - Matrix.filledCount matrix
 
 filledCount :: State -> Int
-filledCount State {..} = matrixFilledCount matrix
+filledCount State {..} = Matrix.filledCount matrix
 
 allFilled :: State -> Bool
 allFilled s = unfilledCount s == 0

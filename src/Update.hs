@@ -8,13 +8,13 @@ import Control.Applicative
 import Control.Monad (guard)
 import qualified Data.Map.Strict as Map
 import Geometry
-import Model (Matrix(..), fillVoxel, isFilled, isGrounded, isValidCoord)
+import qualified Matrix
 import State (BotId, Energy(..), Harmonics(..), State(..), allFilled, coord)
 
 timestepCost :: State -> Integer
 timestepCost State {..} =
   (20 * fromIntegral (length bots)) +
-  ((fromIntegral (matrixResolution matrix) ^ (3 :: Integer)) *
+  ((fromIntegral (Matrix.resolution matrix) ^ (3 :: Integer)) *
    case harmonics of
      High -> 30
      Low -> 3)
@@ -29,7 +29,7 @@ performCommand (botId, cmd) state@State {..} =
   newState
   where
     bot = bots Map.! botId
-    regionIsClear = not . any (isFilled matrix)
+    regionIsClear = not . any (Matrix.isFilled matrix)
     newState =
       case cmd of
         Halt -> do
@@ -43,7 +43,7 @@ performCommand (botId, cmd) state@State {..} =
         SMove (LLD vector)
           -- TODO: check <= 15
          -> do
-          guard $ isValidCoord matrix newBotCoord
+          guard $ Matrix.isValidCoord matrix newBotCoord
           guard $ regionIsClear regionPassedThrough
           guard $ differsOnSingleAxis vector
           pure
@@ -59,8 +59,8 @@ performCommand (botId, cmd) state@State {..} =
         LMove (SLD vector1) (SLD vector2)
           -- TODO: check <= 5
          -> do
-          guard $ isValidCoord matrix coord'
-          guard $ isValidCoord matrix coord''
+          guard $ Matrix.isValidCoord matrix coord'
+          guard $ Matrix.isValidCoord matrix coord''
           guard $ regionIsClear regionPassedThrough
           pure
             state
@@ -80,15 +80,16 @@ performCommand (botId, cmd) state@State {..} =
         FusionP _ncd -> undefined
         FusionS _ncd -> undefined
         Fill (NCD vector) -> do
-          guard $ isFilled target coordToFill
-          guard $ harmonics == High || isGrounded updatedMatrix coordToFill
+          guard $ Matrix.isFilled target coordToFill
+          guard $
+            harmonics == High || Matrix.isGrounded updatedMatrix coordToFill
           pure
             state {matrix = updatedMatrix, energy = energy + energyToFillVoxel}
           where coordToFill = translateBy vector $ coord bot
                 (updatedMatrix, energyToFillVoxel) =
-                  if isFilled matrix coordToFill
+                  if Matrix.isFilled matrix coordToFill
                     then (matrix, 6)
-                    else (fillVoxel matrix coordToFill, 12)
+                    else (Matrix.fillVoxel matrix coordToFill, 12)
 
 flipHarmonics :: Harmonics -> Harmonics
 flipHarmonics High = Low
