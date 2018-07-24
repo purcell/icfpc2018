@@ -105,7 +105,10 @@ nextPositionToFill fillOrder s = earliestUnfilled
     earliestUnfilled =
       if null unfilled
         then Nothing
-        else Just $ minimumBy (comparing fillOrder) unfilled
+        else Just $
+             minimumBy (comparing fillOrder) $
+             takeWhile ((<= cy botPos) . cy) unfilled
+    botPos = coord $ head $ Map.elems (bots s)
     unfilled = Matrix.toList $ target s `Matrix.difference` matrix s
 
 halt :: State -> Maybe State
