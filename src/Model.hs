@@ -6,7 +6,6 @@ import Data.Binary.Get
 import Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Set as S
 import qualified Data.Vector as V
 import Data.Word
 import Geometry (Coordinate(..))
@@ -21,14 +20,13 @@ getMatrix = do
   let bytesToRead = ceiling (fromIntegral (res * res * res) / 8 :: Rational)
   bytes <- V.fromList . BS.unpack <$> getByteString bytesToRead
   let filledCoords =
-        S.fromList
-          [ c
-          | x <- [1 .. res - 2]
-          , y <- [0 .. res - 2]
-          , z <- [1 .. res - 2]
-          , let c = Coordinate x y z
-          , voxelFilledAt bytes res c
-          ]
+        [ c
+        | x <- [1 .. res - 2]
+        , y <- [0 .. res - 2]
+        , z <- [1 .. res - 2]
+        , let c = Coordinate x y z
+        , voxelFilledAt bytes res c
+        ]
   return (makeMatrix res filledCoords)
 
 voxelFilledAt :: V.Vector Word8 -> Int -> Coordinate -> Bool

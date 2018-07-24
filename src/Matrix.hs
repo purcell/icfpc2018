@@ -16,44 +16,50 @@ module Matrix
   , toList
   ) where
 
+import qualified Data.IntSet as IS
+import Data.IntSet (IntSet)
 import qualified Data.Set as S
 
 import Geometry (Coordinate(..))
 
 data Matrix = Matrix
-  { matrixResolution :: !Int
-  , matrixFilledVoxels :: S.Set Coordinate
+  { resolution :: !Int
+  , filledVoxels :: IntSet
   } deriving (Eq, Ord, Show)
 
-resolution :: Matrix -> Int
-resolution = matrixResolution
+linearise :: Int -> Coordinate -> Int
+linearise r Coordinate {..} = cy * r * r + cx * r + cz
 
-makeMatrix :: Int -> S.Set Coordinate -> Matrix
-makeMatrix n cs = Matrix n cs
+unlinearise :: Int -> Int -> Coordinate
+unlinearise r i = Coordinate x y z
+  where
+    y = i `div` (r * r)
+    (x, z) = (i - y * (r * r)) `divMod` r
+
+makeMatrix :: Int -> [Coordinate] -> Matrix
+makeMatrix n cs = Matrix n (IS.fromList (linearise n <$> cs))
 
 emptyCopy :: Matrix -> Matrix
-emptyCopy m = m {matrixFilledVoxels = S.empty}
+emptyCopy m = m {filledVoxels = IS.empty}
 
 difference :: Matrix -> Matrix -> Matrix
 difference a b
-  | matrixResolution a /= matrixResolution b = error "mismatched dimensions"
+  | resolution a /= resolution b = error "mismatched dimensions"
 difference a b =
-  Matrix
-    (matrixResolution a)
-    (matrixFilledVoxels a `S.difference` matrixFilledVoxels b)
+  Matrix (resolution a) (filledVoxels a `IS.difference` filledVoxels b)
 
 toList :: Matrix -> [Coordinate]
-toList = S.toList . matrixFilledVoxels
+toList m = unlinearise (resolution m) <$> IS.toList (filledVoxels m)
 
 filledCount :: Matrix -> Int
-filledCount m = S.size (matrixFilledVoxels m)
+filledCount m = IS.size (filledVoxels m)
 
 isFilled :: Matrix -> Coordinate -> Bool
-isFilled Matrix {..} c = c `S.member` matrixFilledVoxels
+isFilled Matrix {..} c = linearise resolution c `IS.member` filledVoxels
 
 fillVoxel :: Matrix -> Coordinate -> Matrix
 fillVoxel m@Matrix {..} c =
-  m {matrixFilledVoxels = S.insert c matrixFilledVoxels}
+  m {filledVoxels = IS.insert (linearise resolution c) filledVoxels}
 
 isGrounded :: Matrix -> Coordinate -> Bool
 isGrounded = go S.empty
@@ -80,10 +86,10 @@ nonDiagonalNeighbours m Coordinate {..} =
 isValidCoord :: Matrix -> Coordinate -> Bool
 isValidCoord m Coordinate {..} = inRange cx && inRange cy && inRange cz
   where
-    inRange i = i >= 0 && i < matrixResolution m
+    inRange i = i >= 0 && i < resolution m
 
 coordRange :: Matrix -> [Int]
-coordRange Matrix {..} = [0 .. matrixResolution - 1]
+coordRange Matrix {..} = [0 .. resolution - 1]
 
 showSlice :: Matrix -> Int -> String
 showSlice m y = unlines (row <$> reverse (coordRange m))
