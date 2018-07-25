@@ -36,8 +36,8 @@ import State
 ------------------------------------------------------------------------------
 -- Monadic plumbing
 ------------------------------------------------------------------------------
-newtype Build a = Build
-  { unBuild :: MaybeT (ST.State State) a
+newtype Execute a = Execute
+  { runExecute :: MaybeT (ST.State State) a
   } deriving ( Functor
              , Alternative
              , Applicative
@@ -46,16 +46,22 @@ newtype Build a = Build
              , MonadState State
              )
 
+newtype Build a = Build
+  { unBuild :: Execute a
+  } deriving (Functor, Alternative, Applicative, Monad, MonadPlus)
+
 instance (MonadReader State) Build where
-  ask = get
-  local f = Build . MaybeT . ST.withState f . runMaybeT . unBuild
+  ask = Build get
+  local f =
+    Build . Execute . MaybeT . ST.withState f . runMaybeT . runExecute . unBuild
 
 runBuild :: Build a -> State -> Maybe State
-runBuild b s =
-  case ST.runState (runMaybeT (unBuild b)) s of
+runBuild (Build b) s =
+  case ST.runState (runMaybeT (runExecute b)) s of
     (Just _, s') -> Just s'
     _ -> Nothing
 
+-- Obsolete interface
 performCommand :: (BotId, Cmd) -> State -> Maybe State
 performCommand (botId, cmd) = runBuild (timestep [(botId, cmd)])
 
@@ -63,13 +69,14 @@ performCommand (botId, cmd) = runBuild (timestep [(botId, cmd)])
 -- Applying commands
 ------------------------------------------------------------------------------
 timestep :: [(BotId, Cmd)] -> Build ()
-timestep instructions = do
-  tsCost <- Energy <$> gets timestepCost
-  for_ instructions $ \(botId, cmd) -> do
-    _ <- getBot botId
-    apply botId cmd
-    modify (\s@State {..} -> s {trace = trace ++ [cmd]})
-  addCost tsCost
+timestep instructions =
+  Build $ do
+    tsCost <- Energy <$> gets timestepCost
+    for_ instructions $ \(botId, cmd) -> do
+      _ <- getBot botId
+      apply botId cmd
+      modify (\s@State {..} -> s {trace = trace ++ [cmd]})
+    addCost tsCost
   where
     timestepCost State {..} =
       (20 * fromIntegral (length bots)) +
@@ -78,7 +85,7 @@ timestep instructions = do
          High -> 30
          Low -> 3)
 
-apply :: BotId -> Cmd -> Build ()
+apply :: BotId -> Cmd -> Execute ()
 apply botId Halt = do
   s@State {..} <- get
   guard $ length bots == 1
@@ -144,19 +151,19 @@ apply botId (Fill (NCD vector)) = do
 ------------------------------------------------------------------------------
 -- Monadic helpers
 ------------------------------------------------------------------------------
-getBot :: BotId -> Build Bot
+getBot :: BotId -> Execute Bot
 getBot botId = gets bots >>= (maybe mzero return . Map.lookup botId)
 
-setBot :: BotId -> Bot -> Build ()
+setBot :: BotId -> Bot -> Execute ()
 setBot botId bot = modify $ \s -> s {bots = Map.insert botId bot (bots s)}
 
-addCost :: Energy -> Build ()
+addCost :: Energy -> Execute ()
 addCost i = modify (\s@State {..} -> s {energy = energy + i})
 
-regionIsClear :: [Coordinate] -> Build Bool
+regionIsClear :: [Coordinate] -> Execute Bool
 regionIsClear coords = noneFilled <$> gets matrix
   where
     noneFilled m = not (any (Matrix.isFilled m) coords)
 
-traverseRegion :: [Coordinate] -> Build ()
+traverseRegion :: [Coordinate] -> Execute ()
 traverseRegion r = guard =<< regionIsClear r

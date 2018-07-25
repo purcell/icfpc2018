@@ -14,9 +14,8 @@ import Control.Monad.Reader
 import Data.Foldable (for_)
 import Data.List (minimumBy, sortOn)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, listToMaybe)
+import Data.Maybe (catMaybes)
 import Data.Ord (comparing)
-import qualified Data.Set as Set
 import qualified Debug.Trace
 import Geometry
   ( Coordinate(..)
