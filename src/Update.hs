@@ -1,99 +1,154 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Update where
+module Update
+  ( performCommand
+  ) where
 
 import Cmd (Cmd(..))
 import Control.Applicative
-import Control.Monad (guard)
+import Control.Monad (MonadPlus, guard, mzero)
+import Control.Monad.State.Class
+import qualified Control.Monad.State.Strict as ST
+import Control.Monad.Trans.Maybe
+import Data.Foldable (for_)
 import qualified Data.Map.Strict as Map
 import Geometry
 import qualified Matrix
-import State (BotId, Energy(..), Harmonics(..), State(..), allFilled, coord)
+import State
+  ( Bot
+  , BotId
+  , Energy(..)
+  , Harmonics(..)
+  , State(..)
+  , allFilled
+  , coord
+  )
 
-timestepCost :: State -> Integer
-timestepCost State {..} =
-  (20 * fromIntegral (length bots)) +
-  ((fromIntegral (Matrix.resolution matrix) ^ (3 :: Integer)) *
-   case harmonics of
-     High -> 30
-     Low -> 3)
+------------------------------------------------------------------------------
+-- Monadic plumbing
+------------------------------------------------------------------------------
+newtype Build a = Build
+  { unBuild :: MaybeT (ST.State State) a
+  } deriving ( Functor
+             , Alternative
+             , Applicative
+             , Monad
+             , MonadPlus
+             , MonadState State
+             )
 
-performCommand :: (Monad m, Alternative m) => (BotId, Cmd) -> State -> m State
-performCommand (botId, cmd) state@State {..} =
-  (\s ->
-     s
-       { trace = trace ++ [cmd]
-       , energy = State.energy s + Energy (timestepCost state)
-       }) <$>
-  newState
+runBuild :: Build a -> State -> Maybe State
+runBuild b s =
+  case ST.runState (runMaybeT (unBuild b)) s of
+    (Just _, s') -> Just s'
+    _ -> Nothing
+
+performCommand :: (BotId, Cmd) -> State -> Maybe State
+performCommand (botId, cmd) = runBuild (timestep [(botId, cmd)])
+
+------------------------------------------------------------------------------
+-- Applying commands
+------------------------------------------------------------------------------
+timestep :: [(BotId, Cmd)] -> Build ()
+timestep instructions = do
+  tsCost <- Energy <$> gets timestepCost
+  for_ instructions $ \(botId, cmd) -> do
+    _ <- getBot botId
+    apply botId cmd
+    modify (\s@State {..} -> s {trace = trace ++ [cmd]})
+  addCost tsCost
   where
-    bot = bots Map.! botId
-    regionIsClear = not . any (Matrix.isFilled matrix)
-    newState =
-      case cmd of
-        Halt -> do
-          guard $ length bots == 1
-          guard $ coord bot == origin
-          guard $ allFilled state
-          guard $ harmonics == Low
-          pure $ state {bots = Map.empty}
-        Wait -> pure state
-        FlipHarmonics
-          -- TODO: assert all filled voxels are grounded if turning to Low
-         -> pure state {harmonics = flipHarmonics harmonics}
-        SMove (LLD vector)
-          -- TODO: check <= 15
-         -> do
-          guard $ Matrix.isValidCoord matrix newBotCoord
-          guard $ regionIsClear regionPassedThrough
-          guard $ differsOnSingleAxis vector
-          pure
-            state
-              { bots = Map.insert botId movedBot bots
-              , energy = energy + Energy (fromIntegral energyToMoveBot)
-              }
-          where movedBot = bot {coord = newBotCoord}
-                newBotCoord = translateBy vector $ coord bot
-                regionPassedThrough =
-                  linearRegion vector (coord bot) newBotCoord
-                energyToMoveBot = manhattanDistance vector * 2
-        LMove (SLD vector1) (SLD vector2)
-          -- TODO: check <= 5
-         -> do
-          guard $ Matrix.isValidCoord matrix coord'
-          guard $ Matrix.isValidCoord matrix coord''
-          guard $ regionIsClear regionPassedThrough
-          pure
-            state
-              { bots = Map.insert botId movedBot bots
-              , energy = energy + Energy (fromIntegral energyToMoveBot)
-              }
-          where movedBot = bot {coord = coord''}
-                coord' = translateBy vector1 $ coord bot
-                coord'' = translateBy vector2 coord'
-                regionPassedThrough =
-                  linearRegion vector1 (coord bot) coord' ++
-                  linearRegion vector2 coord' coord''
-                energyToMoveBot =
-                  2 *
-                  (manhattanDistance vector1 + 2 + manhattanDistance vector2)
-        Fission _ncd _seedAmount -> undefined
-        FusionP _ncd -> undefined
-        FusionS _ncd -> undefined
-        Fill (NCD vector) -> do
-          guard $ Matrix.isFilled target coordToFill
-          guard $
-            harmonics == High ||
-            Matrix.touchesNeighbourOrGround updatedMatrix coordToFill
-          pure
-            state {matrix = updatedMatrix, energy = energy + energyToFillVoxel}
-          where coordToFill = translateBy vector $ coord bot
-                (updatedMatrix, energyToFillVoxel) =
-                  if Matrix.isFilled matrix coordToFill
-                    then (matrix, 6)
-                    else (Matrix.fillVoxel matrix coordToFill, 12)
+    timestepCost State {..} =
+      (20 * fromIntegral (length bots)) +
+      ((fromIntegral (Matrix.resolution matrix) ^ (3 :: Integer)) *
+       case harmonics of
+         High -> 30
+         Low -> 3)
 
-flipHarmonics :: Harmonics -> Harmonics
-flipHarmonics High = Low
-flipHarmonics Low = High
+apply :: BotId -> Cmd -> Build ()
+apply botId Halt = do
+  s@State {..} <- get
+  guard $ length bots == 1
+  bot <- getBot botId
+  guard $ coord bot == origin
+  guard $ allFilled s
+  guard $ harmonics == Low
+  modify $ \s -> s {bots = Map.empty}
+apply _ Wait = return ()
+apply _ FlipHarmonics
+      -- TODO: assert all filled voxels are grounded if turning to Low
+ = modify $ \s -> s {harmonics = flipHarmonics (harmonics s)}
+  where
+    flipHarmonics High = Low
+    flipHarmonics Low = High
+apply botId (SMove (LLD vector))
+      -- TODO: check <= 15
+ = do
+  State {..} <- get
+  bot <- getBot botId
+  let newBotCoord = translateBy vector $ coord bot
+  guard $ Matrix.isValidCoord matrix newBotCoord
+  traverseRegion (linearRegion vector (coord bot) newBotCoord)
+  guard $ differsOnSingleAxis vector
+  setBot botId bot {coord = newBotCoord}
+  addCost $ Energy (fromIntegral (manhattanDistance vector * 2))
+apply botId (LMove (SLD vector1) (SLD vector2))
+      -- TODO: check <= 5
+ = do
+  State {..} <- get
+  bot <- getBot botId
+  let coord' = translateBy vector1 $ coord bot
+  guard $ Matrix.isValidCoord matrix coord'
+  let coord'' = translateBy vector2 coord'
+  guard $ Matrix.isValidCoord matrix coord''
+  traverseRegion
+    (linearRegion vector1 (coord bot) coord' ++
+     linearRegion vector2 coord' coord'')
+  setBot botId bot {coord = coord''}
+  addCost $
+    Energy
+      (fromIntegral
+         (2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2)))
+apply _ (Fission _ncd _seedAmount) = undefined
+apply _ (FusionP _ncd) = undefined
+apply _ (FusionS _ncd) = undefined
+apply botId (Fill (NCD vector)) = do
+  State {..} <- get
+  bot <- getBot botId
+  let coordToFill = translateBy vector $ coord bot
+  guard $ Matrix.isFilled target coordToFill
+  -- TODO: verify we can actually reach this coord to fill it
+  if Matrix.isFilled matrix coordToFill
+    then addCost 6
+    else do
+      let updatedMatrix = Matrix.fillVoxel matrix coordToFill
+      guard $
+        harmonics == High ||
+        Matrix.touchesNeighbourOrGround updatedMatrix coordToFill
+      modify $ \s -> s {matrix = updatedMatrix}
+      addCost 12
+
+------------------------------------------------------------------------------
+-- Monadic helpers
+------------------------------------------------------------------------------
+getBot :: BotId -> Build Bot
+getBot botId = gets bots >>= (maybe mzero return . Map.lookup botId)
+
+setBot :: BotId -> Bot -> Build ()
+setBot botId bot = modify $ \s -> s {bots = Map.insert botId bot (bots s)}
+
+addCost :: (Monad m, MonadPlus m, MonadState State m) => Energy -> m ()
+addCost i = modify (\s@State {..} -> s {energy = energy + i})
+
+regionIsClear :: MonadState State m => [Coordinate] -> m Bool
+regionIsClear coords = noneFilled <$> gets matrix
+  where
+    noneFilled m = not (any (Matrix.isFilled m) coords)
+
+traverseRegion :: [Coordinate] -> Build ()
+traverseRegion r = guard =<< regionIsClear r
