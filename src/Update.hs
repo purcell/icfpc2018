@@ -7,11 +7,15 @@
 
 module Update
   ( performCommand
+  , timestep
+  , runBuild
+  , Build
   ) where
 
 import Cmd (Cmd(..))
 import Control.Applicative
 import Control.Monad (MonadPlus, guard, mzero)
+import Control.Monad.Reader
 import Control.Monad.State.Class
 import qualified Control.Monad.State.Strict as ST
 import Control.Monad.Trans.Maybe
@@ -41,6 +45,10 @@ newtype Build a = Build
              , MonadPlus
              , MonadState State
              )
+
+instance (MonadReader State) Build where
+  ask = get
+  local f = Build . MaybeT . ST.withState f . runMaybeT . unBuild
 
 runBuild :: Build a -> State -> Maybe State
 runBuild b s =
@@ -142,10 +150,10 @@ getBot botId = gets bots >>= (maybe mzero return . Map.lookup botId)
 setBot :: BotId -> Bot -> Build ()
 setBot botId bot = modify $ \s -> s {bots = Map.insert botId bot (bots s)}
 
-addCost :: (Monad m, MonadPlus m, MonadState State m) => Energy -> m ()
+addCost :: Energy -> Build ()
 addCost i = modify (\s@State {..} -> s {energy = energy + i})
 
-regionIsClear :: MonadState State m => [Coordinate] -> m Bool
+regionIsClear :: [Coordinate] -> Build Bool
 regionIsClear coords = noneFilled <$> gets matrix
   where
     noneFilled m = not (any (Matrix.isFilled m) coords)

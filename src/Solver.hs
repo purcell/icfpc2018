@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BangPatterns #-}
 
 module Solver
@@ -6,8 +7,11 @@ module Solver
   ) where
 
 import Cmd
-import Control.Applicative ((<|>), empty)
+import Control.Applicative ((<|>))
 import Control.Arrow ((&&&))
+import Control.Monad (when)
+import Control.Monad.Reader
+import Data.Foldable (for_)
 import Data.List (minimumBy, sortOn)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, listToMaybe)
@@ -38,32 +42,45 @@ debug :: String -> a -> a
 debug = const id -- or Debug.Trace.trace
 
 solve :: Matrix -> Maybe (State, Int)
-solve m = (id &&& (fromIntegral . energy)) <$> go (initialState m)
+solve m = (id &&& (fromIntegral . energy)) <$> runBuild go (initialState m)
   where
-    go :: State -> Maybe State
-    go !s
-      | allFilled s = flipH Low s >>= (`moveTo` origin) >>= halt
-    go !s = (fillAround s <|> moveNext s) >>= go
-    moveNext :: State -> Maybe State
-    moveNext s =
-      debug "Looking for next position" $
-      nextPositionToFill (coordIndex m) s >>= moveTo s . justAbove
+    fillOrder = coordIndex m
+    go :: Build ()
+    go =
+      debug "Looking for next" $
+      reader (nextPositionToFill fillOrder) >>= \case
+        Just p -> do
+          moveTo (justAbove p)
+          fillAllBelow
+          go
+        Nothing -> do
+          flipH Low
+          moveTo origin
+          halt
 
-flipH :: Harmonics -> State -> Maybe State
-flipH h s
-  | harmonics s == h = Just s
-flipH _ s =
-  debug "Flipping harmonics" $ performCommand (BotId 1, FlipHarmonics) s
+flipH :: Harmonics -> Build ()
+flipH h = do
+  h' <- reader harmonics
+  when (h /= h') $
+    debug "Flipping harmonics" $ timestep [(BotId 1, FlipHarmonics)]
 
 -- Assumes we're above all filled pixels
-moveTo :: State -> Coordinate -> Maybe State
-moveTo s !c = debug ("Find best move to " ++ show c) $ maybeMove s
+moveTo :: Coordinate -> Build ()
+moveTo !c = do
+  [(botId, bot)] <- reader (Map.toList . bots)
+  let botPos = coord bot
+  when (botPos /= c) $ do
+    let possibleLLD lld
+          | cy botPos < cy c = dy lld > 0
+          | cx botPos /= cx c || cz botPos /= cz c = dy lld == 0
+          | otherwise = dy lld /= 0
+    let move = bestSMove botPos possibleLLD
+    debug ("Moving towards " ++ show c ++ " from " ++ show botPos) $
+      timestep [(botId, move)]
+    moveTo c
   where
-    botId = head (Map.keys (bots s))
-    botPos st = coord (bots st Map.! botId)
-    -- Shortest smove from c to a, with LLD satisfying f
     bestSMove a f =
-      listToMaybe $
+      head $
       fst <$>
       sortOn
         snd
@@ -71,25 +88,14 @@ moveTo s !c = debug ("Find best move to " ++ show c) $ maybeMove s
         | move@(SMove (LLD vec)) <- smoves
         , f vec
         ]
-    moveThenCont s' move = performCommand (botId, move) s' >>= maybeMove
-    maybeMove s'
-      | botPos s' == c = pure s'
-      | cy (botPos s') < cy c =
-        bestSMove (botPos s') (\lld -> dy lld > 0) >>= moveThenCont s'
-      | cx (botPos s') /= cx c || cz (botPos s') /= cz c =
-        bestSMove (botPos s') (\lld -> dy lld == 0) >>= moveThenCont s'
-      | otherwise =
-        bestSMove (botPos s') (\lld -> dy lld /= 0) >>= moveThenCont s'
 
-fillAround :: State -> Maybe State
-fillAround s =
-  debug "Try to fill around current location" $
-  if null fillCmds
-    then empty
-    else listToMaybe fillCmds >>= \c ->
-           performCommand c s <|> (flipH High s >>= performCommand c)
+fillAllBelow :: Build ()
+fillAllBelow =
+  debug "Try to fill below current location" $ do
+    steps <- reader fillCmds
+    for_ steps $ \cmd -> timestep [cmd] <|> (flipH High >> timestep [cmd])
   where
-    fillCmds =
+    fillCmds s =
       [ (botId, Fill ncd)
       | ncd@(NCD vec) <- nearCoordinateDiffs
       , (botId, Bot {..}) <- Map.toList (bots s)
@@ -114,8 +120,10 @@ nextPositionToFill fillOrder s = earliestUnfilled
     botPos = coord $ head $ Map.elems (bots s)
     unfilled = Matrix.toList $ target s `Matrix.difference` matrix s
 
-halt :: State -> Maybe State
-halt s = debug "Halt " $ performCommand (head (Map.keys (bots s)), Halt) s
+halt :: Build ()
+halt = do
+  firstBotId <- reader (head . Map.keys . bots)
+  debug "Halt " $ timestep [(firstBotId, Halt)]
 
 coordIndex :: Matrix -> Coordinate -> Int
 coordIndex m Coordinate {..} =
