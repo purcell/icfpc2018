@@ -73,8 +73,9 @@ timestep instructions =
   Build $ do
     tsCost <- Energy <$> gets timestepCost
     for_ instructions $ \(botId, cmd) -> do
-      _ <- getBot botId
-      apply botId cmd
+      bot <- getBot botId
+      markVolatile [coord bot]
+      apply (botId, bot) cmd
       modify (\s@State {..} -> s {trace = trace ++ [cmd]})
     addCost tsCost
   where
@@ -85,11 +86,13 @@ timestep instructions =
          High -> 30
          Low -> 3)
 
-apply :: BotId -> Cmd -> Execute ()
-apply botId Halt = do
+markVolatile :: [Coordinate] -> Execute ()
+markVolatile _ = return ()
+
+apply :: (BotId, Bot) -> Cmd -> Execute ()
+apply (_, bot) Halt = do
   s@State {..} <- get
   guard $ length bots == 1
-  bot <- getBot botId
   guard $ coord bot == origin
   guard $ allFilled s
   guard $ harmonics == Low
@@ -102,29 +105,31 @@ apply _ FlipHarmonics = do
   where
     flipHarmonics High = Low
     flipHarmonics Low = High
-apply botId (SMove (LLD vector))
+apply (botId, bot) (SMove (LLD vector))
       -- TODO: check <= 15
  = do
   State {..} <- get
-  bot <- getBot botId
+  guard $ differsOnSingleAxis vector
   let newBotCoord = translateBy vector $ coord bot
   guard $ Matrix.isValidCoord matrix newBotCoord
-  traverseRegion (linearRegion vector (coord bot) newBotCoord)
-  guard $ differsOnSingleAxis vector
+  let region = linearRegion vector (coord bot) newBotCoord
+  traverseRegion region
+  markVolatile region
   setBot botId bot {coord = newBotCoord}
   addCost $ Energy (fromIntegral (manhattanDistance vector * 2))
-apply botId (LMove (SLD vector1) (SLD vector2))
+apply (botId, bot) (LMove (SLD vector1) (SLD vector2))
       -- TODO: check <= 5
  = do
   State {..} <- get
-  bot <- getBot botId
   let coord' = translateBy vector1 $ coord bot
   guard $ Matrix.isValidCoord matrix coord'
   let coord'' = translateBy vector2 coord'
   guard $ Matrix.isValidCoord matrix coord''
-  traverseRegion
-    (linearRegion vector1 (coord bot) coord' ++
-     linearRegion vector2 coord' coord'')
+  let region =
+        linearRegion vector1 (coord bot) coord' ++
+        linearRegion vector2 coord' coord''
+  traverseRegion region
+  markVolatile region
   setBot botId bot {coord = coord''}
   addCost $
     Energy
@@ -133,11 +138,11 @@ apply botId (LMove (SLD vector1) (SLD vector2))
 apply _ (Fission _ncd _seedAmount) = undefined
 apply _ (FusionP _ncd) = undefined
 apply _ (FusionS _ncd) = undefined
-apply botId (Fill (NCD vector)) = do
+apply (_, bot) (Fill (NCD vector)) = do
   State {..} <- get
-  bot <- getBot botId
   let coordToFill = translateBy vector $ coord bot
   guard $ Matrix.isFilled target coordToFill
+  markVolatile [coordToFill]
   -- TODO: verify we can actually reach this coord to fill it
   if Matrix.isFilled matrix coordToFill
     then addCost 6
