@@ -95,9 +95,10 @@ apply botId Halt = do
   guard $ harmonics == Low
   modify $ \s -> s {bots = Map.empty}
 apply _ Wait = return ()
-apply _ FlipHarmonics
-      -- TODO: assert all filled voxels are grounded if turning to Low
- = modify $ \s -> s {harmonics = flipHarmonics (harmonics s)}
+apply _ FlipHarmonics = do
+  s@State {..} <- get
+  guard $ harmonics == Low || Matrix.allGrounded matrix
+  modify $ \s -> s {harmonics = flipHarmonics harmonics}
   where
     flipHarmonics High = Low
     flipHarmonics Low = High

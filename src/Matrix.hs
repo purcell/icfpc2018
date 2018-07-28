@@ -7,7 +7,11 @@ module Matrix
   , resolution
   , fillVoxel
   , isFilled
+  , filter
+  , null
   , isGrounded
+  , allGrounded
+  , filledNeighbours
   , touchesNeighbourOrGround
   , isValidCoord
   , coordRange
@@ -18,9 +22,12 @@ module Matrix
   , toList
   ) where
 
+import Data.Foldable (foldl')
 import qualified Data.IntSet as IS
 import Data.IntSet (IntSet)
 import qualified Data.Set as S
+import Prelude hiding (filter, null)
+import qualified Prelude
 
 import Geometry (Coordinate(..))
 
@@ -63,6 +70,35 @@ fillVoxel :: Matrix -> Coordinate -> Matrix
 fillVoxel m@Matrix {..} c =
   m {filledVoxels = IS.insert (linearise resolution c) filledVoxels}
 
+union :: Matrix -> Matrix -> Matrix
+union m1 m2 = m1 {filledVoxels = filledVoxels m1 `IS.union` filledVoxels m2}
+
+filter :: (Coordinate -> Bool) -> Matrix -> Matrix
+filter f m@Matrix {..} =
+  m {filledVoxels = IS.filter (f . unlinearise resolution) filledVoxels}
+
+filledNeighbours :: Matrix -> Matrix -> Matrix
+filledNeighbours full slice = expandedSlice `difference` slice
+  where
+    expandedSlice = foldl' fillVoxel (emptyCopy slice) filledNearby
+    filledNearby =
+      [ neighbour
+      | c <- toList slice
+      , neighbour <- nonDiagonalNeighbours full c
+      , isFilled full neighbour
+      ]
+
+allGrounded :: Matrix -> Bool
+allGrounded m@Matrix {..} = m == expandAllFrom lowest
+  where
+    expandAllFrom cur
+      | null cur = emptyCopy m
+      | otherwise = cur `union` expandAllFrom (filledNeighbours m cur)
+    lowest = Matrix.filter ((0 ==) . cy) m
+
+null :: Matrix -> Bool
+null = IS.null . filledVoxels
+
 isGrounded :: Matrix -> Coordinate -> Bool
 isGrounded = go S.empty
   where
@@ -74,7 +110,7 @@ isGrounded = go S.empty
     go seen m c =
       any
         (go (S.insert c seen) m)
-        (filter (`S.notMember` seen) (nonDiagonalNeighbours m c))
+        (Prelude.filter (`S.notMember` seen) (nonDiagonalNeighbours m c))
 
 touchesNeighbourOrGround :: Matrix -> Coordinate -> Bool
 touchesNeighbourOrGround m c =
@@ -82,7 +118,7 @@ touchesNeighbourOrGround m c =
 
 nonDiagonalNeighbours :: Matrix -> Coordinate -> [Coordinate]
 nonDiagonalNeighbours m Coordinate {..} =
-  filter
+  Prelude.filter
     (isValidCoord m)
     [ Coordinate (cx + dx) (cy + dy) (cz + dz)
     | (dx, dy, dz) <-
