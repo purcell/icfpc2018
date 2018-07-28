@@ -14,25 +14,22 @@ import Control.Monad.Reader
 import Data.Foldable (for_)
 import Data.List (minimumBy, sortOn)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
 import Data.Ord (comparing)
 import qualified Debug.Trace
 import Geometry
   ( Coordinate(..)
   , LLD(..)
   , NCD(..)
-  , SLD(..)
   , VectorDiff(..)
   , diffCoords
-  , linearVectorDiffs
   , manhattanDistance
-  , mkLLD
   , nearCoordinateDiffs
   , origin
   , translateBy
   )
 import qualified Matrix
 import Matrix (Matrix)
+import Model
 import State
 import Trace (unsafeDumpTrace)
 import Update
@@ -155,13 +152,3 @@ coordFromIndex m i = Coordinate x y z
 
 distBetween :: Coordinate -> Coordinate -> Int
 distBetween c c' = manhattanDistance (diffCoords c c')
-
-smoves :: [Cmd]
-smoves = SMove <$> catMaybes (mkLLD <$> linearVectorDiffs 15)
-
-lmoves :: [Cmd]
-lmoves =
-  [ LMove (SLD sld1) (SLD sld2)
-  | sld1 <- linearVectorDiffs 5
-  , sld2 <- linearVectorDiffs 5
-  ]
