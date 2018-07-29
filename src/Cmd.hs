@@ -21,6 +21,7 @@ data Cmd
   | FusionP !NCD
   | FusionS !NCD
   | Fill !NCD
+  | Void !NCD
   deriving (Show, Eq, Ord)
 
 newtype SeedAmount =

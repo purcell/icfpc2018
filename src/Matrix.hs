@@ -6,6 +6,7 @@ module Matrix
   , makeMatrix
   , resolution
   , fillVoxel
+  , voidVoxel
   , isFilled
   , filter
   , null
@@ -69,6 +70,10 @@ isFilled Matrix {..} c = linearise resolution c `IS.member` filledVoxels
 fillVoxel :: Matrix -> Coordinate -> Matrix
 fillVoxel m@Matrix {..} c =
   m {filledVoxels = IS.insert (linearise resolution c) filledVoxels}
+
+voidVoxel :: Matrix -> Coordinate -> Matrix
+voidVoxel m@Matrix {..} c =
+  m {filledVoxels = IS.delete (linearise resolution c) filledVoxels}
 
 union :: Matrix -> Matrix -> Matrix
 union m1 m2 = m1 {filledVoxels = filledVoxels m1 `IS.union` filledVoxels m2}

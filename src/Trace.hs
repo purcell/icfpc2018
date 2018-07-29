@@ -50,6 +50,7 @@ putCmd (Fission ncd (SeedAmount seedAmt)) = do
   putWord8 (5 .|. shiftL (ncdBits ncd) 3)
   putWord8 (fromIntegral seedAmt)
 putCmd (Fill ncd) = putWord8 (3 .|. shiftL (ncdBits ncd) 3)
+putCmd (Void ncd) = putWord8 (2 .|. shiftL (ncdBits ncd) 3)
 
 lldAxis :: LLD -> Word8
 lldAxis (LLD VectorDiff {..})

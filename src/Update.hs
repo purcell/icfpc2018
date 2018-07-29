@@ -141,7 +141,7 @@ apply _ (FusionS _ncd) = undefined
 apply (_, bot) (Fill (NCD vector)) = do
   State {..} <- get
   let coordToFill = translateBy vector $ coord bot
-  guard $ Matrix.isFilled target coordToFill
+  guard $ Matrix.isValidCoord matrix coordToFill
   markVolatile [coordToFill]
   -- TODO: verify we can actually reach this coord to fill it
   if Matrix.isFilled matrix coordToFill
@@ -153,6 +153,19 @@ apply (_, bot) (Fill (NCD vector)) = do
         Matrix.touchesNeighbourOrGround updatedMatrix coordToFill
       modify $ \s -> s {matrix = updatedMatrix}
       addCost 12
+apply (_, bot) (Void (NCD vector)) = do
+  State {..} <- get
+  let coordToVoid = translateBy vector $ coord bot
+  guard $ Matrix.isValidCoord matrix coordToVoid
+  markVolatile [coordToVoid]
+  -- TODO: verify we can actually reach this coord to void it
+  if Matrix.isFilled matrix coordToVoid
+    then do
+      let updatedMatrix = Matrix.voidVoxel matrix coordToVoid
+      guard $ harmonics == Low || Matrix.allGrounded matrix
+      modify $ \s -> s {matrix = updatedMatrix}
+      addCost (-12)
+    else addCost 3
 
 ------------------------------------------------------------------------------
 -- Monadic helpers

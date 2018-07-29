@@ -87,18 +87,19 @@ moveTo !c = do
 
 fillAllBelow :: Build ()
 fillAllBelow =
-  debug "Try to fill below current location" $ do
+  debug "Fill below current location" $ do
     steps <- reader fillCmds
     for_ steps $ \cmd -> timestep [cmd] <|> (flipH High >> timestep [cmd])
   where
     fillCmds s =
       [ (botId, Fill ncd)
       | ncd@(NCD vec) <- nearCoordinateDiffs
+      , dy vec == -1
       , (botId, Bot {..}) <- Map.toList (bots s)
       , let fillLoc = translateBy vec coord
+      , Matrix.isValidCoord (matrix s) fillLoc
       , Matrix.isFilled (target s) fillLoc
       , not (Matrix.isFilled (matrix s) fillLoc)
-      , cy fillLoc < cy coord
       ]
 
 justAbove :: Coordinate -> Coordinate
