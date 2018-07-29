@@ -78,7 +78,7 @@ filter f m@Matrix {..} =
   m {filledVoxels = IS.filter (f . unlinearise resolution) filledVoxels}
 
 filledNeighbours :: Matrix -> Matrix -> Matrix
-filledNeighbours full slice = expandedSlice `difference` slice
+filledNeighbours full slice = expandedSlice
   where
     expandedSlice = foldl' fillVoxel (emptyCopy slice) filledNearby
     filledNearby =
@@ -86,6 +86,7 @@ filledNeighbours full slice = expandedSlice `difference` slice
       | c <- toList slice
       , neighbour <- nonDiagonalNeighbours full c
       , isFilled full neighbour
+      , not (isFilled slice neighbour)
       ]
 
 allGrounded :: Matrix -> Bool
