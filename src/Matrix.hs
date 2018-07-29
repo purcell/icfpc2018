@@ -89,11 +89,14 @@ filledNeighbours full slice = expandedSlice `difference` slice
       ]
 
 allGrounded :: Matrix -> Bool
-allGrounded m@Matrix {..} = m == expandAllFrom lowest
+allGrounded m@Matrix {..} = m == expandAllFrom (emptyCopy m) lowest
   where
-    expandAllFrom cur
-      | null cur = emptyCopy m
-      | otherwise = cur `union` expandAllFrom (filledNeighbours m cur)
+    expandAllFrom seen cur
+      | null cur = seen
+      | otherwise =
+        expandAllFrom
+          (seen `union` cur)
+          (filledNeighbours m cur `difference` seen)
     lowest = Matrix.filter ((0 ==) . cy) m
 
 null :: Matrix -> Bool
