@@ -96,10 +96,10 @@ apply (_, bot) Halt = do
   guard $ coord bot == origin
   guard $ allFilled s
   guard $ harmonics == Low
-  modify $ \s -> s {bots = Map.empty}
+  modify $ \st -> st {bots = Map.empty}
 apply _ Wait = return ()
 apply _ FlipHarmonics = do
-  s@State {..} <- get
+  State {..} <- get
   guard $ harmonics == Low || Matrix.allGrounded matrix
   modify $ \s -> s {harmonics = flipHarmonics harmonics}
   where
