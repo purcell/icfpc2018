@@ -11,7 +11,7 @@ import Control.Applicative ((<|>))
 import Control.Arrow ((&&&))
 import Control.Monad (when)
 import Control.Monad.Reader
-import Data.Foldable (for_)
+import Data.Foldable (for_, traverse_)
 import Data.List (minimumBy, sortOn)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
@@ -43,20 +43,18 @@ solve :: Matrix -> Maybe (State, Energy)
 solve m = (id &&& energy) <$> runBuild (bottomUpSolver m) (initialState m)
 
 bottomUpSolver :: Solver
-bottomUpSolver target = go
+bottomUpSolver target = do
+  traverse_ fillNext fillSequence
+  flipH Low
+  moveTo origin
+  halt
   where
-    go =
-      debug "Looking for next" $
-      reader (nextPositionToFill fillOrder) >>= \case
-        Just p -> do
-          moveTo (justAbove p)
-          fillAllBelow
-          go
-        Nothing -> do
-          flipH Low
-          moveTo origin
-          halt
-    fillOrder = coordIndex target
+    fillNext x = do
+      alreadyFilled <- reader (flip Matrix.isFilled x . matrix)
+      unless alreadyFilled $ do
+        moveTo (justAbove x)
+        fillAllBelow
+    fillSequence = sortOn (coordIndex target) (Matrix.toList target)
 
 flipH :: Harmonics -> Build ()
 flipH h = do
