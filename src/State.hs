@@ -15,19 +15,22 @@ data State = State
   , matrix :: Matrix
   , target :: Matrix
   , bots :: Map BotId Bot
-  , trace :: [Cmd]
+  , commandLog :: [Cmd]
   } deriving (Show, Eq, Ord)
+
+trace :: State -> [Cmd]
+trace = reverse . commandLog
 
 initialState :: Matrix -> State
 initialState target =
   State
-    { energy = 0
-    , harmonics = Low
-    , matrix = Matrix.emptyCopy target
-    , target = target
-    , bots = Map.fromList [(initialBotId, initialBot)]
-    , trace = []
-    }
+  { energy = 0
+  , harmonics = Low
+  , matrix = Matrix.emptyCopy target
+  , target = target
+  , bots = Map.fromList [(initialBotId, initialBot)]
+  , commandLog = []
+  }
 
 initialBotId :: BotId
 initialBotId = BotId 1

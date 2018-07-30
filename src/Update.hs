@@ -76,7 +76,7 @@ timestep instructions =
       bot <- getBot botId
       markVolatile [coord bot]
       apply (botId, bot) cmd
-      modify (\s@State {..} -> s {trace = trace ++ [cmd]})
+      modify (\s@State {..} -> s {commandLog = cmd : commandLog})
     addCost tsCost
   where
     timestepCost State {..} =
