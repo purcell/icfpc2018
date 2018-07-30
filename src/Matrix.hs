@@ -17,9 +17,9 @@ module Matrix
   , isValidCoord
   , coordRange
   , showSlice
+  , size
   , emptyCopy
   , difference
-  , filledCount
   , toList
   ) where
 
@@ -61,8 +61,8 @@ difference a b =
 toList :: Matrix -> [Coordinate]
 toList Matrix {..} = unlinearise resolution <$> IS.toList filledVoxels
 
-filledCount :: Matrix -> Int
-filledCount m = IS.size (filledVoxels m)
+size :: Matrix -> Int
+size = IS.size . filledVoxels
 
 isFilled :: Matrix -> Coordinate -> Bool
 isFilled Matrix {..} c = linearise resolution c `IS.member` filledVoxels

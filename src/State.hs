@@ -53,14 +53,8 @@ newtype BotId =
   BotId Int
   deriving (Eq, Ord, Show)
 
-unfilledCount :: State -> Int
-unfilledCount State {..} = Matrix.filledCount target - Matrix.filledCount matrix
-
-filledCount :: State -> Int
-filledCount State {..} = Matrix.filledCount matrix
-
 allFilled :: State -> Bool
-allFilled s = unfilledCount s == 0
+allFilled State {..} = matrix == target
 
 checkForm :: State -> Either String State
 checkForm state@State {..} = Right state
