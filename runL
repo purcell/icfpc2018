@@ -1,11 +1,19 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 cd "$(dirname "$0")"
 
 mkdir -p solutionsL
 stack build
-for f in data/problemsL/*.mdl; do
+
+solve() {
+    local f="$1"
     trace_filename=$(basename "$f"|sed s/_tgt.mdl/.nbt/)
     echo "Solving $f"
-    stack exec -- time icfpc2018 "$f" "solutionsL/$trace_filename"
-done
+    stack exec -- time icfpc2018 +RTS -N2 -H768M -RTS "$f" "solutionsL/$trace_filename" > "solutionsL/$trace_filename.log"
+}
+
+if [ -n "$1" ]; then
+    solve "$1"
+else
+    for f in data/problemsL/*.mdl; do solve "$f"; done
+fi
