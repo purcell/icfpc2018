@@ -59,7 +59,7 @@ difference a b =
   Matrix (resolution a) (filledVoxels a `IS.difference` filledVoxels b)
 
 toList :: Matrix -> [Coordinate]
-toList m = unlinearise (resolution m) <$> IS.toList (filledVoxels m)
+toList Matrix {..} = unlinearise resolution <$> IS.toList filledVoxels
 
 filledCount :: Matrix -> Int
 filledCount m = IS.size (filledVoxels m)
