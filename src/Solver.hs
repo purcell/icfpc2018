@@ -39,10 +39,8 @@ debug = const id -- or Debug.Trace.trace
 
 type Solver = Matrix -> Build ()
 
-solve :: Matrix -> Maybe (State, Int)
-solve m =
-  (id &&& (fromIntegral . energy)) <$>
-  runBuild (bottomUpSolver m) (initialState m)
+solve :: Matrix -> Maybe (State, Energy)
+solve m = (id &&& energy) <$> runBuild (bottomUpSolver m) (initialState m)
 
 bottomUpSolver :: Solver
 bottomUpSolver target = go
