@@ -71,7 +71,7 @@ performCommand (botId, cmd) = runBuild (timestep [(botId, cmd)])
 timestep :: [(BotId, Cmd)] -> Build ()
 timestep instructions =
   Build $ do
-    tsCost <- Energy <$> gets timestepCost
+    tsCost <- gets timestepCost
     for_ instructions $ \(botId, cmd) -> do
       bot <- getBot botId
       markVolatile [coord bot]
@@ -80,6 +80,7 @@ timestep instructions =
     addCost tsCost
   where
     timestepCost State {..} =
+      fromIntegral $
       (20 * fromIntegral (length bots)) +
       ((fromIntegral (Matrix.resolution matrix) ^ (3 :: Integer)) *
        case harmonics of
@@ -116,7 +117,7 @@ apply (botId, bot) (SMove (LLD vector))
   traverseRegion region
   markVolatile region
   setBot botId bot {coord = newBotCoord}
-  addCost $ Energy (fromIntegral (manhattanDistance vector * 2))
+  addCost $ fromIntegral (manhattanDistance vector * 2)
 apply (botId, bot) (LMove (SLD vector1) (SLD vector2))
       -- TODO: check <= 5
  = do
@@ -132,9 +133,8 @@ apply (botId, bot) (LMove (SLD vector1) (SLD vector2))
   markVolatile region
   setBot botId bot {coord = coord''}
   addCost $
-    Energy
-      (fromIntegral
-         (2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2)))
+    fromIntegral
+      (2 * (manhattanDistance vector1 + 2 + manhattanDistance vector2))
 apply _ (Fission _ncd _seedAmount) = undefined
 apply _ (FusionP _ncd) = undefined
 apply _ (FusionS _ncd) = undefined

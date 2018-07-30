@@ -1,7 +1,16 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module State where
+module State
+  ( State(..)
+  , trace
+  , initialState
+  , Energy
+  , Harmonics(..)
+  , Bot(..)
+  , BotId(..)
+  , allFilled
+  ) where
 
 import Cmd (Cmd)
 import Data.Map.Strict as Map
