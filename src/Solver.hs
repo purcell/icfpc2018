@@ -37,11 +37,16 @@ import Update
 debug :: String -> a -> a
 debug = const id -- or Debug.Trace.trace
 
+type Solver = Matrix -> Build ()
+
 solve :: Matrix -> Maybe (State, Int)
-solve m = (id &&& (fromIntegral . energy)) <$> runBuild go (initialState m)
+solve m =
+  (id &&& (fromIntegral . energy)) <$>
+  runBuild (bottomUpSolver m) (initialState m)
+
+bottomUpSolver :: Solver
+bottomUpSolver target = go
   where
-    fillOrder = coordIndex m
-    go :: Build ()
     go =
       debug "Looking for next" $
       reader (nextPositionToFill fillOrder) >>= \case
@@ -53,6 +58,7 @@ solve m = (id &&& (fromIntegral . energy)) <$> runBuild go (initialState m)
           flipH Low
           moveTo origin
           halt
+    fillOrder = coordIndex target
 
 flipH :: Harmonics -> Build ()
 flipH h = do
