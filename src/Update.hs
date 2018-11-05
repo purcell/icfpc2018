@@ -15,6 +15,7 @@ module Update
 import Cmd (Cmd(..))
 import Control.Applicative
 import Control.Monad (MonadPlus, guard, mzero)
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Reader
 import Control.Monad.State.Class
 import qualified Control.Monad.State.Strict as ST
@@ -42,13 +43,14 @@ newtype Execute a = Execute
              , Alternative
              , Applicative
              , Monad
+             , MonadFail
              , MonadPlus
              , MonadState State
              )
 
 newtype Build a = Build
   { unBuild :: Execute a
-  } deriving (Functor, Alternative, Applicative, Monad, MonadPlus)
+  } deriving (Functor, Alternative, Applicative, Monad, MonadFail, MonadPlus)
 
 instance (MonadReader State) Build where
   ask = Build get
